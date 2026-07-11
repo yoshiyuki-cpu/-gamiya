@@ -6,6 +6,12 @@ import DoneBanner from './_components/DoneBanner'
 import Footer from './_components/Footer'
 import Header from './_components/Header'
 
+// This page's entire content comes from a live Supabase read (categories,
+// items, today's records) plus per-device localStorage — there is nothing
+// meaningful to statically prerender at build time, and doing so requires
+// NEXT_PUBLIC_SUPABASE_URL to be a valid URL during the build itself.
+export const dynamic = 'force-dynamic'
+
 export default function Home() {
   const {
     loading,
