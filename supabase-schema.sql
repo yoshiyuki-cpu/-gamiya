@@ -111,11 +111,11 @@ grant usage, select on all sequences in schema public to anon;
 
 -- 6. Enable Realtime on the mutable tables ---------------------
 
-alter publication supabase_realtime add table items, daily_records, staff_names;
--- categories is static after seed — intentionally NOT added, no UI ever mutates it.
+alter publication supabase_realtime add table categories, items, daily_records, staff_names;
 
 -- DELETE events only include primary-key columns in `old` by default, but
 -- the client needs `item_id` from deleted daily_records rows (and it's
--- harmless/cheap to have full old rows for items too) — so widen replica identity.
+-- harmless/cheap to have full old rows for the rest too) — so widen replica identity.
+alter table categories replica identity full;
 alter table items replica identity full;
 alter table daily_records replica identity full;

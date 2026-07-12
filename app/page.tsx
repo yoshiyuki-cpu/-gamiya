@@ -1,6 +1,7 @@
 'use client'
 
 import { useChecklist } from '@/hooks/useChecklist'
+import AddCategoryForm from './_components/AddCategoryForm'
 import CategoryCard from './_components/CategoryCard'
 import DoneBanner from './_components/DoneBanner'
 import Footer from './_components/Footer'
@@ -31,6 +32,8 @@ export default function Home() {
     setItemStaff,
     toggleTimer,
     resetTimer,
+    addCategory,
+    deleteCategory,
     addItemsBulk,
     deleteItem,
     moveItem,
@@ -86,8 +89,10 @@ export default function Home() {
             onToggleQuantityMode={toggleQuantityMode}
             onDeleteItem={deleteItem}
             onAddItemsBulk={addItemsBulk}
+            onDeleteCategory={deleteCategory}
           />
         ))}
+        {editMode ? <AddCategoryForm onAdd={addCategory} /> : null}
       </div>
 
       <Footer editMode={editMode} onReset={resetDailyChecks} onRestore={restoreDefaults} />

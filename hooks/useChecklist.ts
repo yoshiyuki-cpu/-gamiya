@@ -68,6 +68,14 @@ export function useChecklist() {
     })
   }, [])
 
+  const applyCategory = useCallback((row: Category) => {
+    setCategories((prev) => {
+      const idx = prev.findIndex((c) => c.id === row.id)
+      const next = idx === -1 ? [...prev, row] : prev.map((c) => (c.id === row.id ? row : c))
+      return next.slice().sort((a, b) => a.sort_order - b.sort_order)
+    })
+  }, [])
+
   const applyItem = useCallback((row: Item) => {
     setItems((prev) => {
       const idx = prev.findIndex((i) => i.id === row.id)
@@ -179,9 +187,28 @@ export function useChecklist() {
     }
   }, [dailyKey, applyDailyRecord])
 
-  // ---- items + staff_names realtime (mount-scoped, no date filter) ---
+  // ---- categories + items + staff_names realtime (mount-scoped, no date filter) ---
 
   useEffect(() => {
+    const categoriesChannel = supabase
+      .channel('categories-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'categories' },
+        (payload: RealtimePostgresChangesPayload<Category>) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            applyCategory(payload.new as Category)
+          } else if (payload.eventType === 'DELETE') {
+            const oldId = (payload.old as Partial<Category>).id
+            if (oldId != null) {
+              setCategories((prev) => prev.filter((c) => c.id !== oldId))
+              setItems((prev) => prev.filter((i) => i.category_id !== oldId))
+            }
+          }
+        },
+      )
+      .subscribe()
+
     const itemsChannel = supabase
       .channel('items-changes')
       .on(
@@ -215,10 +242,11 @@ export function useChecklist() {
       .subscribe()
 
     return () => {
+      supabase.removeChannel(categoriesChannel)
       supabase.removeChannel(itemsChannel)
       supabase.removeChannel(staffChannel)
     }
-  }, [applyItem])
+  }, [applyCategory, applyItem])
 
   // ---- item interactions ----------------------------------------------
 
@@ -335,6 +363,38 @@ export function useChecklist() {
       if (data) applyDailyRecord(data as DailyRecord)
     },
     [mergeRecord, applyDailyRecord],
+  )
+
+  // ---- edit-mode: categories --------------------------------------------
+
+  const addCategory = useCallback(
+    async (badge: string, name: string, sub: string) => {
+      const trimmedName = name.trim()
+      if (!trimmedName) return
+      const id = 'cat-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+      const nextSortOrder = categories.length ? Math.max(...categories.map((c) => c.sort_order)) + 1 : 1
+      const row = { id, badge: badge.trim() || '他', name: trimmedName, sub: sub.trim(), sort_order: nextSortOrder }
+      const { data } = await supabase.from('categories').insert(row).select().single()
+      if (data) setCategories((prev) => [...prev, data as Category].sort((a, b) => a.sort_order - b.sort_order))
+    },
+    [categories],
+  )
+
+  const deleteCategory = useCallback(
+    async (categoryId: string, categoryName: string) => {
+      const ok = window.confirm(`「${categoryName}」を削除します。中の項目と記録もすべて削除されます。よろしいですか?`)
+      if (!ok) return
+      const removedItemIds = new Set(items.filter((i) => i.category_id === categoryId).map((i) => i.id))
+      setCategories((prev) => prev.filter((c) => c.id !== categoryId))
+      setItems((prev) => prev.filter((i) => i.category_id !== categoryId))
+      setDailyRecords((prev) => {
+        const next = new Map(prev)
+        removedItemIds.forEach((id) => next.delete(id))
+        return next
+      })
+      await supabase.from('categories').delete().eq('id', categoryId)
+    },
+    [items],
   )
 
   // ---- edit-mode: structural item changes -----------------------------
@@ -455,6 +515,8 @@ export function useChecklist() {
     setItemStaff,
     toggleTimer,
     resetTimer,
+    addCategory,
+    deleteCategory,
     addItemsBulk,
     deleteItem,
     moveItem,

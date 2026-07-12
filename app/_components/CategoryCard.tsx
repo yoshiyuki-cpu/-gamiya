@@ -19,6 +19,7 @@ type Props = {
   onToggleQuantityMode: (itemId: number) => void
   onDeleteItem: (itemId: number) => void
   onAddItemsBulk: (categoryId: string, rawText: string) => void
+  onDeleteCategory: (categoryId: string, categoryName: string) => void
 }
 
 export default function CategoryCard({
@@ -36,6 +37,7 @@ export default function CategoryCard({
   onToggleQuantityMode,
   onDeleteItem,
   onAddItemsBulk,
+  onDeleteCategory,
 }: Props) {
   const [bulkText, setBulkText] = useState('')
   const sortedItems = [...items].sort((a, b) => a.sort_order - b.sort_order)
@@ -49,6 +51,16 @@ export default function CategoryCard({
           <div className="category-name">{category.name}</div>
           <div className="category-sub">{category.sub}</div>
         </div>
+        {editMode ? (
+          <button
+            type="button"
+            className="category-del-btn"
+            aria-label="カテゴリーを削除"
+            onClick={() => onDeleteCategory(category.id, category.name)}
+          >
+            ×
+          </button>
+        ) : null}
       </div>
       <div className="items">
         {sortedItems.length === 0 ? (
