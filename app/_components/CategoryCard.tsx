@@ -9,8 +9,10 @@ type Props = {
   items: Item[]
   dailyRecords: Map<number, DailyRecord>
   editMode: boolean
+  staffList: string[]
   onToggleCheck: (itemId: number) => void
   onSetQuantity: (itemId: number, value: string) => void
+  onSetItemStaff: (itemId: number, name: string) => void
   onToggleTimer: (itemId: number) => void
   onResetTimer: (itemId: number) => void
   onMoveItem: (categoryId: string, itemId: number, direction: 1 | -1) => void
@@ -24,8 +26,10 @@ export default function CategoryCard({
   items,
   dailyRecords,
   editMode,
+  staffList,
   onToggleCheck,
   onSetQuantity,
+  onSetItemStaff,
   onToggleTimer,
   onResetTimer,
   onMoveItem,
@@ -59,8 +63,10 @@ export default function CategoryCard({
             showTimer={showTimer}
             isFirst={idx === 0}
             isLast={idx === sortedItems.length - 1}
+            staffList={staffList}
             onToggleCheck={onToggleCheck}
             onSetQuantity={onSetQuantity}
+            onSetItemStaff={onSetItemStaff}
             onToggleTimer={onToggleTimer}
             onResetTimer={onResetTimer}
             onMove={(direction) => onMoveItem(category.id, item.id, direction)}

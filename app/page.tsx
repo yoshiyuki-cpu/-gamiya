@@ -28,6 +28,7 @@ export default function Home() {
     doneCount,
     toggleCheck,
     setQuantity,
+    setItemStaff,
     toggleTimer,
     resetTimer,
     addItemsBulk,
@@ -75,8 +76,10 @@ export default function Home() {
             items={items.filter((i) => i.category_id === category.id)}
             dailyRecords={dailyRecords}
             editMode={editMode}
+            staffList={staffList}
             onToggleCheck={toggleCheck}
             onSetQuantity={setQuantity}
+            onSetItemStaff={setItemStaff}
             onToggleTimer={toggleTimer}
             onResetTimer={resetTimer}
             onMoveItem={moveItem}

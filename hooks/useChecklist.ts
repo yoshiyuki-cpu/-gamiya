@@ -222,6 +222,21 @@ export function useChecklist() {
 
   // ---- item interactions ----------------------------------------------
 
+  const setItemStaff = useCallback(
+    async (itemId: number, name: string) => {
+      const trimmed = name.trim()
+      const staffName = trimmed || null
+      mergeRecord(itemId, { staff_name: staffName })
+      const { data } = await supabase
+        .from('daily_records')
+        .upsert({ item_id: itemId, record_date: dailyKeyRef.current, staff_name: staffName }, { onConflict: 'item_id,record_date' })
+        .select()
+        .single()
+      if (data) applyDailyRecord(data as DailyRecord)
+    },
+    [mergeRecord, applyDailyRecord],
+  )
+
   const toggleCheck = useCallback(
     async (itemId: number) => {
       const record = dailyRecords.get(itemId)
@@ -437,6 +452,7 @@ export function useChecklist() {
     doneCount,
     toggleCheck,
     setQuantity,
+    setItemStaff,
     toggleTimer,
     resetTimer,
     addItemsBulk,

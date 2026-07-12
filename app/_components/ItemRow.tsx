@@ -4,14 +4,47 @@ import { useEffect, useRef, useState } from 'react'
 import type { DailyRecord, Item } from '@/lib/supabase'
 import TimerDisplay from './TimerDisplay'
 
+function StaffSelect({
+  itemId,
+  value,
+  staffList,
+  onSetItemStaff,
+}: {
+  itemId: number
+  value: string
+  staffList: string[]
+  onSetItemStaff: (itemId: number, name: string) => void
+}) {
+  return (
+    <select
+      className="staff-select"
+      aria-label="担当者"
+      value={staffList.includes(value) ? value : ''}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => onSetItemStaff(itemId, e.target.value)}
+    >
+      <option value="">担当者</option>
+      {staffList.map((name) => (
+        <option key={name} value={name}>
+          {name}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 function QuantityField({
   item,
   record,
+  staffList,
   onSetQuantity,
+  onSetItemStaff,
 }: {
   item: Item
   record: DailyRecord | undefined
+  staffList: string[]
   onSetQuantity: (itemId: number, value: string) => void
+  onSetItemStaff: (itemId: number, name: string) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState(record?.quantity_value ?? '')
@@ -25,13 +58,19 @@ function QuantityField({
   }, [record?.quantity_value])
 
   const filled = value.trim() !== ''
-  const staffName = record?.staff_name
 
   return (
     <>
       <span className={`qty-dot${filled ? ' filled' : ''}`}></span>
       <span className={`item-text${filled ? ' filled-text' : ''}`}>{item.text}</span>
-      {staffName ? <span className="staff-badge">{staffName}</span> : null}
+      {filled ? (
+        <StaffSelect
+          itemId={item.id}
+          value={record?.staff_name ?? ''}
+          staffList={staffList}
+          onSetItemStaff={onSetItemStaff}
+        />
+      ) : null}
       <input
         ref={inputRef}
         className="qty-input"
@@ -51,15 +90,18 @@ function QuantityField({
 function CheckboxField({
   item,
   record,
+  staffList,
   onToggleCheck,
+  onSetItemStaff,
 }: {
   item: Item
   record: DailyRecord | undefined
+  staffList: string[]
   onToggleCheck: (itemId: number) => void
+  onSetItemStaff: (itemId: number, name: string) => void
 }) {
   const checked = !!record?.checked
   const timeLabel = record?.checked_time
-  const staffName = record?.staff_name
 
   return (
     <label style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', cursor: 'pointer' }}>
@@ -71,7 +113,14 @@ function CheckboxField({
       </span>
       <span className="item-text">{item.text}</span>
       {checked && timeLabel ? <span className="time-badge">{timeLabel}</span> : null}
-      {checked && staffName ? <span className="staff-badge">{staffName}</span> : null}
+      {checked ? (
+        <StaffSelect
+          itemId={item.id}
+          value={record?.staff_name ?? ''}
+          staffList={staffList}
+          onSetItemStaff={onSetItemStaff}
+        />
+      ) : null}
     </label>
   )
 }
@@ -83,8 +132,10 @@ type Props = {
   showTimer: boolean
   isFirst: boolean
   isLast: boolean
+  staffList: string[]
   onToggleCheck: (itemId: number) => void
   onSetQuantity: (itemId: number, value: string) => void
+  onSetItemStaff: (itemId: number, name: string) => void
   onToggleTimer: (itemId: number) => void
   onResetTimer: (itemId: number) => void
   onMove: (direction: 1 | -1) => void
@@ -99,8 +150,10 @@ export default function ItemRow({
   showTimer,
   isFirst,
   isLast,
+  staffList,
   onToggleCheck,
   onSetQuantity,
+  onSetItemStaff,
   onToggleTimer,
   onResetTimer,
   onMove,
@@ -134,9 +187,21 @@ export default function ItemRow({
   }
 
   const mainField = item.has_quantity ? (
-    <QuantityField item={item} record={record} onSetQuantity={onSetQuantity} />
+    <QuantityField
+      item={item}
+      record={record}
+      staffList={staffList}
+      onSetQuantity={onSetQuantity}
+      onSetItemStaff={onSetItemStaff}
+    />
   ) : (
-    <CheckboxField item={item} record={record} onToggleCheck={onToggleCheck} />
+    <CheckboxField
+      item={item}
+      record={record}
+      staffList={staffList}
+      onToggleCheck={onToggleCheck}
+      onSetItemStaff={onSetItemStaff}
+    />
   )
 
   if (showTimer) {
