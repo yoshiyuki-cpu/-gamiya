@@ -33,7 +33,7 @@ export default function Header({
     <div className="header">
       <div className="top-row">
         <div>
-          <div className="eyebrow">GAMIYA</div>
+          <div className="eyebrow">牛タン専門焼肉店</div>
           <h1 className="title">焼肉がみやアプリ</h1>
           <div className="subtitle">
             {editMode
