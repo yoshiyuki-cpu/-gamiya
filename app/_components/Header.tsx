@@ -33,8 +33,8 @@ export default function Header({
     <div className="header">
       <div className="top-row">
         <div>
-          <div className="eyebrow">GAMIYA / 焼肉がみや</div>
-          <h1 className="title">開店準備チェックシート</h1>
+          <div className="eyebrow">GAMIYA</div>
+          <h1 className="title">焼肉がみやアプリ</h1>
           <div className="subtitle">
             {editMode
               ? 'リストを編集中:項目の追加・削除・数量入力の切り替えができます'

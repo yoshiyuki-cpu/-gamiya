@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "焼肉がみや | 開店準備チェックシート",
-  description: "焼肉がみや 開店準備チェックシート",
+  title: "焼肉がみやアプリ",
+  description: "焼肉がみやアプリ | 開店準備チェックシート",
 };
 
 export default function RootLayout({
