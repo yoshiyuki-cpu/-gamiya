@@ -40,12 +40,19 @@ export default function CategoryCard({
   onDeleteCategory,
 }: Props) {
   const [bulkText, setBulkText] = useState('')
+  const [expanded, setExpanded] = useState(true)
   const sortedItems = [...items].sort((a, b) => a.sort_order - b.sort_order)
   const showTimer = category.id === 'prep'
+  const open = editMode || expanded
 
   return (
     <div className="category">
-      <div className="category-head">
+      <div
+        className="category-head"
+        onClick={editMode ? undefined : () => setExpanded((v) => !v)}
+        role={editMode ? undefined : 'button'}
+        tabIndex={editMode ? undefined : 0}
+      >
         <div className="badge">{category.badge}</div>
         <div>
           <div className="category-name">{category.name}</div>
@@ -60,9 +67,13 @@ export default function CategoryCard({
           >
             ×
           </button>
-        ) : null}
+        ) : (
+          <span className={`category-chevron${expanded ? '' : ' collapsed'}`} aria-hidden="true">
+            ▼
+          </span>
+        )}
       </div>
-      <div className="items">
+      <div className={`items${open ? '' : ' collapsed'}`}>
         {sortedItems.length === 0 ? (
           <div className="empty-hint">項目がありません。下から追加してください。</div>
         ) : null}
