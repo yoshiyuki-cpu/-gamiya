@@ -562,6 +562,74 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
 }
 .order-complete-btn:hover{ background: var(--ember); color:#fff2e6; border-color: var(--ember-glow); }
 
+.voice-order-panel{ display:flex; flex-direction:column; gap:12px; padding: 14px 16px; }
+.voice-order-preview{ display:flex; flex-direction:column; gap:10px; }
+.voice-order-item{ display:flex; align-items:center; gap:8px; }
+.voice-order-item .custom-item-input{ flex:1; min-width:0; }
+
+/* AI assistant chat */
+.chat-panel{ display:flex; flex-direction:column; gap:12px; padding: 14px 16px; }
+.chat-messages{ display:flex; flex-direction:column; gap:10px; }
+.chat-bubble{
+  max-width: 85%;
+  padding: 10px 13px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.chat-bubble.user{
+  align-self: flex-end;
+  background: var(--ember);
+  color: #fff2e6;
+  border-bottom-right-radius: 4px;
+}
+.chat-bubble.assistant{
+  align-self: flex-start;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--cream);
+  border-bottom-left-radius: 4px;
+}
+.chat-bubble.chat-loading{ color: var(--muted); }
+.chat-input-row{ display:flex; gap:8px; }
+.chat-input-row input{
+  flex:1; min-width:0;
+  background: var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding: 9px 10px;
+  color: var(--cream);
+  font-size:13.5px;
+  font-family:'Noto Sans JP', sans-serif;
+}
+.chat-input-row input::placeholder{ color: var(--muted); }
+.chat-input-row input:focus{ outline:2px solid var(--ember-glow); outline-offset:1px; }
+.chat-send-btn{
+  flex-shrink:0;
+  background: var(--ember);
+  border:none;
+  color:#fff2e6;
+  border-radius:8px;
+  padding: 9px 16px;
+  font-size:13px; font-weight:700;
+  cursor:pointer;
+}
+.chat-send-btn:hover{ background: var(--ember-glow); }
+.chat-send-btn:disabled{ opacity:0.4; cursor:default; }
+
+/* Daily reports */
+.report-card{
+  background: var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding: 14px 16px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.report-date{ font-size:14px; font-weight:700; color: var(--cream); }
+.report-stats{ display:flex; gap:8px; flex-wrap:wrap; }
+.report-summary{ font-size:13px; color: var(--muted); white-space: pre-wrap; line-height:1.6; }
+
 /* Meetings */
 .recorder{
   display:flex; flex-direction:column; align-items:center; gap:14px;

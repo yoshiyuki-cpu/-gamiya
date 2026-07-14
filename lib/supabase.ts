@@ -61,6 +61,15 @@ export type WallOrder = {
   quantity: number
   staff_name: string | null
   created_at: string
+  completed_at: string | null
+}
+
+export type DailyReport = {
+  id: number
+  report_date: string
+  summary: string
+  stats: Record<string, number> | null
+  created_at: string
 }
 
 export type MeetingStatus = 'recorded' | 'transcribing' | 'transcribed' | 'summarizing' | 'done' | 'error'

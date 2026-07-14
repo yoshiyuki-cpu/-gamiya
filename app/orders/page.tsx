@@ -4,6 +4,7 @@ import { useWallOrders } from '@/hooks/useWallOrders'
 import MenuEditor from './_components/MenuEditor'
 import OrderForm from './_components/OrderForm'
 import OrderList from './_components/OrderList'
+import VoiceOrderPanel from './_components/VoiceOrderPanel'
 
 // Same reasoning as app/page.tsx: this page's content is entirely from a
 // live Supabase read, nothing meaningful to statically prerender.
@@ -82,6 +83,7 @@ export default function OrdersPage() {
         <MenuEditor menuItems={menuItems} onAdd={addMenuItem} onDelete={deleteMenuItem} />
       ) : (
         <>
+          <VoiceOrderPanel menuItems={menuItems} onAddOrder={addOrder} />
           <OrderForm menuItems={menuItems} onAddOrder={addOrder} />
           <OrderList orders={orders} onComplete={completeOrder} />
         </>

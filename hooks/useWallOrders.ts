@@ -43,7 +43,7 @@ export function useWallOrders() {
     ;(async () => {
       const [{ data: menuData }, { data: orderData }, { data: staffData }] = await Promise.all([
         supabase.from('wall_menu_items').select('*').order('sort_order'),
-        supabase.from('wall_orders').select('*').order('created_at'),
+        supabase.from('wall_orders').select('*').is('completed_at', null).order('created_at'),
         supabase.from('staff_names').select('*').order('name'),
       ])
       if (cancelled) return
@@ -113,7 +113,12 @@ export function useWallOrders() {
         { event: '*', schema: 'public', table: 'wall_orders' },
         (payload: RealtimePostgresChangesPayload<WallOrder>) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            applyOrder(payload.new as WallOrder)
+            const row = payload.new as WallOrder
+            if (row.completed_at) {
+              setOrders((prev) => prev.filter((o) => o.id !== row.id))
+            } else {
+              applyOrder(row)
+            }
           } else if (payload.eventType === 'DELETE') {
             const oldId = (payload.old as Partial<WallOrder>).id
             if (oldId != null) setOrders((prev) => prev.filter((o) => o.id !== oldId))
@@ -189,7 +194,7 @@ export function useWallOrders() {
 
   const completeOrder = useCallback(async (orderId: number) => {
     setOrders((prev) => prev.filter((o) => o.id !== orderId))
-    await supabase.from('wall_orders').delete().eq('id', orderId)
+    await supabase.from('wall_orders').update({ completed_at: new Date().toISOString() }).eq('id', orderId)
   }, [])
 
   return {
