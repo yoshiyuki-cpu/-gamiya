@@ -46,3 +46,20 @@ export type StaffName = {
   name: string
   created_at: string
 }
+
+export type MeetingStatus = 'recorded' | 'transcribing' | 'transcribed' | 'summarizing' | 'done' | 'error'
+
+export type Meeting = {
+  id: number
+  meeting_date: string
+  title: string | null
+  audio_url: string | null
+  transcript: string | null
+  summary_overview: string | null
+  summary_decisions: string | null
+  summary_action_items: string | null
+  status: MeetingStatus
+  error_message: string | null
+  created_at: string
+  updated_at: string
+}

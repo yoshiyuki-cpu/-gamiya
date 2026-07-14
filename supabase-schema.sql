@@ -45,6 +45,23 @@ create table staff_names (
   created_at timestamptz not null default now()
 );
 
+create table meetings (
+  id serial primary key,
+  meeting_date date not null,
+  title text,
+  audio_url text,
+  transcript text,
+  summary_overview text,
+  summary_decisions text,
+  summary_action_items text,
+  status text not null default 'recorded',
+  -- 'recorded' | 'transcribing' | 'transcribed' | 'summarizing' | 'done' | 'error'
+  error_message text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index meetings_date_idx on meetings(meeting_date desc);
+
 -- 2. updated_at auto-bump (server clock = authoritative ordering) ----
 
 create or replace function bump_updated_at() returns trigger as $$
@@ -60,6 +77,10 @@ for each row execute function bump_updated_at();
 
 create trigger daily_records_bump_updated_at
 before update on daily_records
+for each row execute function bump_updated_at();
+
+create trigger meetings_bump_updated_at
+before update on meetings
 for each row execute function bump_updated_at();
 
 -- 3. Restore-defaults / seed function -------------------------
@@ -106,12 +127,12 @@ select restore_default_checklist();  -- seeds the default 19 items
 
 -- 5. Grants (anon key needs open CRUD; RLS intentionally left disabled) --
 
-grant select, insert, update, delete on categories, items, daily_records, staff_names to anon;
+grant select, insert, update, delete on categories, items, daily_records, staff_names, meetings to anon;
 grant usage, select on all sequences in schema public to anon;
 
 -- 6. Enable Realtime on the mutable tables ---------------------
 
-alter publication supabase_realtime add table categories, items, daily_records, staff_names;
+alter publication supabase_realtime add table categories, items, daily_records, staff_names, meetings;
 
 -- DELETE events only include primary-key columns in `old` by default, but
 -- the client needs `item_id` from deleted daily_records rows (and it's
@@ -119,3 +140,12 @@ alter publication supabase_realtime add table categories, items, daily_records, 
 alter table categories replica identity full;
 alter table items replica identity full;
 alter table daily_records replica identity full;
+alter table meetings replica identity full;
+
+-- 7. Storage bucket policies for meeting audio ------------------
+-- Create the "meeting-audio" bucket (Public) in the Supabase dashboard first,
+-- then run this so the anon key can upload/read/delete recordings directly.
+
+create policy "meeting-audio insert" on storage.objects for insert to anon with check (bucket_id = 'meeting-audio');
+create policy "meeting-audio select" on storage.objects for select to anon using (bucket_id = 'meeting-audio');
+create policy "meeting-audio delete" on storage.objects for delete to anon using (bucket_id = 'meeting-audio');

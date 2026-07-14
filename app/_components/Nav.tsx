@@ -1,0 +1,19 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+export default function Nav() {
+  const pathname = usePathname()
+
+  return (
+    <nav className="nav">
+      <Link href="/" className={pathname === '/' ? 'active' : ''}>
+        チェックリスト
+      </Link>
+      <Link href="/meetings" className={pathname?.startsWith('/meetings') ? 'active' : ''}>
+        議事録
+      </Link>
+    </nav>
+  )
+}
