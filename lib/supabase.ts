@@ -47,6 +47,22 @@ export type StaffName = {
   created_at: string
 }
 
+export type WallMenuItem = {
+  id: number
+  name: string
+  sort_order: number
+  created_at: string
+}
+
+export type WallOrder = {
+  id: number
+  table_number: string
+  item_name: string
+  quantity: number
+  staff_name: string | null
+  created_at: string
+}
+
 export type MeetingStatus = 'recorded' | 'transcribing' | 'transcribed' | 'summarizing' | 'done' | 'error'
 
 export type Meeting = {

@@ -11,6 +11,9 @@ export default function Nav() {
       <Link href="/" className={pathname === '/' ? 'active' : ''}>
         チェックリスト
       </Link>
+      <Link href="/orders" className={pathname?.startsWith('/orders') ? 'active' : ''}>
+        壁紙メニュー
+      </Link>
       <Link href="/meetings" className={pathname?.startsWith('/meetings') ? 'active' : ''}>
         議事録
       </Link>
