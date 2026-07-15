@@ -13,7 +13,7 @@ function todayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-const CATEGORY_LABEL: Record<string, string> = { morning: '朝礼', mtg: '会議', daily: '日報(振り返り)' }
+const CATEGORY_LABEL: Record<string, string> = { morning: '朝礼', mtg: '会議', daily: '良かった事・悪かった事' }
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     `対象日: ${reportDate}\n\n` +
     `【開店準備チェックリスト】 ${doneCount}/${total} 完了\n\n` +
     `【壁紙メニュー注文】 合計${totalOrders}件(対応済${completedOrders}件)\n${orderLines.join('\n') || 'なし'}\n\n` +
-    `【朝礼・会議・日報の記録】\n${meetingLines.join('\n') || 'なし'}`
+    `【朝礼・会議・振り返りの記録】\n${meetingLines.join('\n') || 'なし'}`
 
   try {
     const message = await client.messages.create({
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
               type: 'text',
               text:
                 '以下は焼肉店「がみや」の1日分の業務データです。オーナー向けに、その日の営業の要点を日本語で簡潔にまとめてください(箇条書き可)。' +
-                '開店準備の進み具合、壁紙メニュー注文の様子、朝礼や会議の内容・決定事項・宿題、日報(今日の良かったこと・悪かったこと)の振り返りがあれば触れてください。データが乏しい項目は無理に書かなくて構いません。\n\n' +
+                '開店準備の進み具合、壁紙メニュー注文の様子、朝礼や会議の内容・決定事項・宿題、良かった事・悪かった事の振り返りがあれば触れてください。データが乏しい項目は無理に書かなくて構いません。\n\n' +
                 context,
             },
           ],
