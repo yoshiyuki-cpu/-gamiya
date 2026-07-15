@@ -641,6 +641,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
 .report-stats{ display:flex; gap:8px; flex-wrap:wrap; }
 .report-summary{ font-size:13px; color: var(--muted); white-space: pre-wrap; line-height:1.6; }
 
+/* Recipe book */
+.recipe-row{
+  width:100%;
+  display:flex; align-items:center; gap:10px;
+  padding: 11px 10px;
+  border-radius:10px;
+  background:none; border:none;
+  text-align:left; cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+}
+.recipe-row:hover{ background: rgba(255,255,255,0.02); }
+.recipe-photo-dot{ font-size:12px; flex-shrink:0; }
+.recipe-photo{
+  width:100%; max-height:220px; object-fit:cover;
+  border-radius:12px; border:1px solid var(--line);
+}
+.recipe-photo-input{
+  font-size:12px; color: var(--muted);
+}
+
 /* Meetings */
 .recorder{
   display:flex; flex-direction:column; align-items:center; gap:14px;

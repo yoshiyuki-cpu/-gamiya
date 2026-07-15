@@ -28,6 +28,10 @@ export default function Nav() {
         <span className="nav-icon" aria-hidden="true">🎙</span>
         <span className="nav-label">議事録</span>
       </Link>
+      <Link href="/recipes" className={pathname?.startsWith('/recipes') ? 'active' : ''}>
+        <span className="nav-icon" aria-hidden="true">📖</span>
+        <span className="nav-label">レシピ</span>
+      </Link>
     </nav>
   )
 }

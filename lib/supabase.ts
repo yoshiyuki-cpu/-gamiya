@@ -72,6 +72,20 @@ export type DailyReport = {
   created_at: string
 }
 
+export type Recipe = {
+  id: number
+  category: string
+  name: string
+  prep_time: string | null
+  ingredients: string | null
+  steps: string | null
+  notes: string | null
+  photo_url: string | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 export type MeetingStatus = 'recorded' | 'transcribing' | 'transcribed' | 'summarizing' | 'done' | 'error'
 
 export type Meeting = {
