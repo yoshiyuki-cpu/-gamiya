@@ -34,11 +34,11 @@ export default function Header({
       <div className="top-row">
         <div>
           <div className="eyebrow">GAMIYA</div>
-          <h1 className="title">焼肉がみやアプリ</h1>
+          <h1 className="title">開店準備</h1>
           <div className="subtitle">
             {editMode
               ? 'リストを編集中:項目の追加・削除・数量入力の切り替えができます'
-              : '仕込みからセッティングまで、抜けなく確認'}
+              : `${todayLabelText()} ・ ${doneCount}/${total} 完了`}
           </div>
         </div>
         <button className={`edit-toggle${editMode ? ' active' : ''}`} type="button" onClick={onToggleEditMode}>
@@ -63,15 +63,6 @@ export default function Header({
             <option key={name} value={name} />
           ))}
         </datalist>
-      </div>
-
-      <div className="date-row" style={{ justifyContent: editMode ? 'flex-start' : 'space-between' }}>
-        <span>{todayLabelText()}</span>
-        {!editMode ? (
-          <strong>
-            {doneCount}/{total} 完了
-          </strong>
-        ) : null}
       </div>
 
       {!editMode ? (

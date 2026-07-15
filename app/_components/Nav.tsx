@@ -9,19 +9,24 @@ export default function Nav() {
   return (
     <nav className="nav">
       <Link href="/" className={pathname === '/' ? 'active' : ''}>
-        チェックリスト
+        <span className="nav-icon" aria-hidden="true">✓</span>
+        <span className="nav-label">チェック</span>
       </Link>
       <Link href="/orders" className={pathname?.startsWith('/orders') ? 'active' : ''}>
-        壁紙メニュー
+        <span className="nav-icon" aria-hidden="true">🍖</span>
+        <span className="nav-label">壁紙注文</span>
       </Link>
       <Link href="/assistant" className={pathname?.startsWith('/assistant') ? 'active' : ''}>
-        AI相談
+        <span className="nav-icon" aria-hidden="true">💬</span>
+        <span className="nav-label">AI相談</span>
       </Link>
       <Link href="/reports" className={pathname?.startsWith('/reports') ? 'active' : ''}>
-        日報
+        <span className="nav-icon" aria-hidden="true">📋</span>
+        <span className="nav-label">日報</span>
       </Link>
       <Link href="/meetings" className={pathname?.startsWith('/meetings') ? 'active' : ''}>
-        議事録
+        <span className="nav-icon" aria-hidden="true">🎙</span>
+        <span className="nav-label">議事録</span>
       </Link>
     </nav>
   )
