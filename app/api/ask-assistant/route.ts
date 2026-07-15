@@ -15,6 +15,8 @@ function todayKey(): string {
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
+const CATEGORY_LABEL: Record<string, string> = { morning: '朝礼', mtg: '会議', daily: '日報(振り返り)' }
+
 export async function POST(req: NextRequest) {
   const { messages } = await req.json()
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -32,9 +34,9 @@ export async function POST(req: NextRequest) {
       .is('completed_at', null),
     supabase
       .from('meetings')
-      .select('meeting_date, title, summary_overview, summary_decisions, summary_action_items')
+      .select('meeting_date, category, title, memo, summary_overview, summary_decisions, summary_action_items')
       .order('meeting_date', { ascending: false })
-      .limit(5),
+      .limit(8),
   ])
 
   const recordsByItem = new Map((records ?? []).map((r) => [r.item_id, r]))
@@ -49,17 +51,20 @@ export async function POST(req: NextRequest) {
   )
 
   const meetingLines = (meetings ?? []).map((m) => {
-    const parts = [`概要:${m.summary_overview ?? 'なし'}`]
+    const label = CATEGORY_LABEL[m.category] ?? m.category
+    const parts: string[] = []
+    if (m.memo) parts.push(`メモ:${m.memo}`)
+    if (m.summary_overview) parts.push(`概要:${m.summary_overview}`)
     if (m.summary_decisions) parts.push(`決定事項:${m.summary_decisions}`)
     if (m.summary_action_items) parts.push(`宿題:${m.summary_action_items}`)
-    return `- ${m.meeting_date}${m.title ? ` ${m.title}` : ''} — ${parts.join(' / ')}`
+    return `- ${m.meeting_date} [${label}]${m.title ? ` ${m.title}` : ''} — ${parts.join(' / ') || '内容なし'}`
   })
 
   const context =
     `今日の日付: ${today}\n\n` +
     `【開店準備チェックリストの状況】\n${checklistLines.join('\n') || '(項目なし)'}\n\n` +
     `【対応中の壁紙メニュー注文】\n${orderLines.join('\n') || '対応中の注文はありません'}\n\n` +
-    `【直近の会議記録】\n${meetingLines.join('\n') || '会議記録はありません'}`
+    `【直近の朝礼・会議・日報の記録】\n${meetingLines.join('\n') || '記録はありません'}`
 
   try {
     const anthropicMessages = (messages as ChatMessage[]).map((m) => ({ role: m.role, content: m.content }))

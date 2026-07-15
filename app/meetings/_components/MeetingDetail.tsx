@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { MEETING_CATEGORIES } from '@/lib/meetings'
 import type { Meeting } from '@/lib/supabase'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -26,12 +27,14 @@ export default function MeetingDetail({
   onRetry: () => void
 }) {
   const [title, setTitle] = useState(meeting.title ?? '')
+  const [memo, setMemo] = useState(meeting.memo ?? '')
   const [transcript, setTranscript] = useState(meeting.transcript ?? '')
   const [overview, setOverview] = useState(meeting.summary_overview ?? '')
   const [decisions, setDecisions] = useState(meeting.summary_decisions ?? '')
   const [actionItems, setActionItems] = useState(meeting.summary_action_items ?? '')
 
   const processing = meeting.status === 'transcribing' || meeting.status === 'summarizing'
+  const categoryName = MEETING_CATEGORIES.find((c) => c.id === meeting.category)?.name ?? meeting.category
 
   return (
     <div className="meeting-detail">
@@ -39,7 +42,13 @@ export default function MeetingDetail({
         ← 一覧に戻る
       </button>
 
-      <div className={`meeting-status-badge meeting-status-${meeting.status}`}>{STATUS_LABEL[meeting.status] ?? meeting.status}</div>
+      <div className="meeting-category-label">
+        {categoryName} ・ {meeting.meeting_date}
+      </div>
+
+      {meeting.audio_url ? (
+        <div className={`meeting-status-badge meeting-status-${meeting.status}`}>{STATUS_LABEL[meeting.status] ?? meeting.status}</div>
+      ) : null}
       {meeting.status === 'error' && meeting.error_message ? <div className="recorder-error">{meeting.error_message}</div> : null}
       {meeting.status === 'error' ? (
         <button type="button" className="meeting-retry-btn" onClick={onRetry}>
@@ -54,6 +63,16 @@ export default function MeetingDetail({
         placeholder="(タイトル未設定)"
         onChange={(e) => setTitle(e.target.value)}
         onBlur={() => onUpdate({ title: title.trim() || null })}
+      />
+
+      <label className="meeting-field-label">メモ</label>
+      <textarea
+        className="meeting-textarea"
+        rows={4}
+        placeholder="手入力でメモを書けます"
+        value={memo}
+        onChange={(e) => setMemo(e.target.value)}
+        onBlur={() => onUpdate({ memo: memo || null })}
       />
 
       {meeting.audio_url ? <audio className="meeting-audio-player" controls src={meeting.audio_url} /> : null}

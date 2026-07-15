@@ -91,7 +91,9 @@ export type MeetingStatus = 'recorded' | 'transcribing' | 'transcribed' | 'summa
 export type Meeting = {
   id: number
   meeting_date: string
+  category: string
   title: string | null
+  memo: string | null
   audio_url: string | null
   transcript: string | null
   summary_overview: string | null

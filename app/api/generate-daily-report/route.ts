@@ -13,6 +13,8 @@ function todayKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+const CATEGORY_LABEL: Record<string, string> = { morning: '朝礼', mtg: '会議', daily: '日報(振り返り)' }
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const reportDate = typeof body?.reportDate === 'string' && body.reportDate ? body.reportDate : todayKey()
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
       .lte('created_at', dayEnd),
     supabase
       .from('meetings')
-      .select('title, summary_overview, summary_decisions, summary_action_items')
+      .select('category, title, memo, summary_overview, summary_decisions, summary_action_items')
       .eq('meeting_date', reportDate),
   ])
 
@@ -46,16 +48,21 @@ export async function POST(req: NextRequest) {
     (o) => `- 卓${o.table_number} ${o.item_name}×${o.quantity}${o.completed_at ? '(対応済)' : '(未対応)'}`,
   )
 
-  const meetingLines = (meetings ?? []).map(
-    (m) =>
-      `- ${m.title ?? '会議'}: ${m.summary_overview ?? 'なし'} / 決定事項:${m.summary_decisions ?? 'なし'} / 宿題:${m.summary_action_items ?? 'なし'}`,
-  )
+  const meetingLines = (meetings ?? []).map((m) => {
+    const label = CATEGORY_LABEL[m.category] ?? m.category
+    const parts: string[] = []
+    if (m.memo) parts.push(`メモ:${m.memo}`)
+    if (m.summary_overview) parts.push(`概要:${m.summary_overview}`)
+    if (m.summary_decisions) parts.push(`決定事項:${m.summary_decisions}`)
+    if (m.summary_action_items) parts.push(`宿題:${m.summary_action_items}`)
+    return `- [${label}]${m.title ? ' ' + m.title : ''}: ${parts.join(' / ') || '内容なし'}`
+  })
 
   const context =
     `対象日: ${reportDate}\n\n` +
     `【開店準備チェックリスト】 ${doneCount}/${total} 完了\n\n` +
     `【壁紙メニュー注文】 合計${totalOrders}件(対応済${completedOrders}件)\n${orderLines.join('\n') || 'なし'}\n\n` +
-    `【会議記録】\n${meetingLines.join('\n') || 'なし'}`
+    `【朝礼・会議・日報の記録】\n${meetingLines.join('\n') || 'なし'}`
 
   try {
     const message = await client.messages.create({
@@ -69,7 +76,7 @@ export async function POST(req: NextRequest) {
               type: 'text',
               text:
                 '以下は焼肉店「がみや」の1日分の業務データです。オーナー向けに、その日の営業の要点を日本語で簡潔にまとめてください(箇条書き可)。' +
-                '開店準備の進み具合、壁紙メニュー注文の様子、会議で決まったことや宿題があれば触れてください。データが乏しい項目は無理に書かなくて構いません。\n\n' +
+                '開店準備の進み具合、壁紙メニュー注文の様子、朝礼や会議の内容・決定事項・宿題、日報(今日の良かったこと・悪かったこと)の振り返りがあれば触れてください。データが乏しい項目は無理に書かなくて構いません。\n\n' +
                 context,
             },
           ],

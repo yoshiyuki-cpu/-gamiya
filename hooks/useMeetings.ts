@@ -63,26 +63,43 @@ export function useMeetings() {
     }
   }, [applyMeeting])
 
-  const createMeetingFromRecording = useCallback(async (audioBlob: Blob, meetingDate: string): Promise<Meeting> => {
-    const ext = extensionFor(audioBlob.type)
-    const path = `meetings/${meetingDate}/${Date.now()}.${ext}`
-    const { error: uploadError } = await supabase.storage
-      .from(AUDIO_BUCKET)
-      .upload(path, audioBlob, { upsert: false, contentType: audioBlob.type || 'audio/webm' })
-    if (uploadError) throw uploadError
+  const createMeetingFromRecording = useCallback(
+    async (audioBlob: Blob, meetingDate: string, category: string): Promise<Meeting> => {
+      const ext = extensionFor(audioBlob.type)
+      const path = `meetings/${meetingDate}/${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from(AUDIO_BUCKET)
+        .upload(path, audioBlob, { upsert: false, contentType: audioBlob.type || 'audio/webm' })
+      if (uploadError) throw uploadError
 
-    const { data: urlData } = supabase.storage.from(AUDIO_BUCKET).getPublicUrl(path)
+      const { data: urlData } = supabase.storage.from(AUDIO_BUCKET).getPublicUrl(path)
 
-    const { data, error } = await supabase
-      .from('meetings')
-      .insert({ meeting_date: meetingDate, audio_url: urlData.publicUrl, status: 'recorded' })
-      .select()
-      .single()
-    if (error) throw error
+      const { data, error } = await supabase
+        .from('meetings')
+        .insert({ meeting_date: meetingDate, category, audio_url: urlData.publicUrl, status: 'recorded' })
+        .select()
+        .single()
+      if (error) throw error
 
-    applyMeeting(data as Meeting)
-    return data as Meeting
-  }, [applyMeeting])
+      applyMeeting(data as Meeting)
+      return data as Meeting
+    },
+    [applyMeeting],
+  )
+
+  const createMemoEntry = useCallback(
+    async (category: string, meetingDate: string): Promise<Meeting | null> => {
+      const { data, error } = await supabase
+        .from('meetings')
+        .insert({ meeting_date: meetingDate, category, status: 'recorded' })
+        .select()
+        .single()
+      if (error || !data) return null
+      applyMeeting(data as Meeting)
+      return data as Meeting
+    },
+    [applyMeeting],
+  )
 
   const updateMeeting = useCallback(
     async (meetingId: number, patch: Partial<Meeting>) => {
@@ -163,6 +180,7 @@ export function useMeetings() {
     meetings,
     loading,
     createMeetingFromRecording,
+    createMemoEntry,
     updateMeeting,
     runTranscription,
     runSummarization,
