@@ -34,13 +34,9 @@ export default function RecipeCategorySection({ categoryId, badge, name, sub, re
         {sorted.length === 0 ? <div className="empty-hint">まだレシピがありません。下から追加してください。</div> : null}
         {sorted.map((r) => (
           <button key={r.id} type="button" className="recipe-row" onClick={() => onSelect(r)}>
+            {r.photo_url ? <img className="recipe-row-thumb" src={r.photo_url} alt="" /> : null}
             <span className="item-text">{r.name}</span>
             {r.prep_time ? <span className="time-badge">{r.prep_time}</span> : null}
-            {r.photo_url ? (
-              <span className="recipe-photo-dot" aria-hidden="true">
-                📷
-              </span>
-            ) : null}
           </button>
         ))}
         <div className="bulk-add">

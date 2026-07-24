@@ -47,7 +47,14 @@ export default function RecipeDetail({
         onBlur={() => onUpdate({ prep_time: prepTime.trim() || null })}
       />
 
-      {recipe.photo_url ? <img className="recipe-photo" src={recipe.photo_url} alt={recipe.name} /> : null}
+      {recipe.photo_url ? (
+        <>
+          <img className="recipe-photo" src={recipe.photo_url} alt={recipe.name} />
+          <button type="button" className="recipe-photo-remove-btn" onClick={() => onUpdate({ photo_url: null })}>
+            写真を削除
+          </button>
+        </>
+      ) : null}
       {uploading ? <div className="meeting-processing">写真をアップロード中…</div> : null}
       <input
         ref={fileInputRef}
