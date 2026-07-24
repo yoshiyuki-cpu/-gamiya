@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useMeetings } from '@/hooks/useMeetings'
+import { todayKey as todayDateStr } from '@/lib/checklist'
 import { MEETING_CATEGORIES } from '@/lib/meetings'
 import type { Meeting } from '@/lib/supabase'
 import MeetingCategorySection from './_components/MeetingCategorySection'
@@ -9,11 +10,6 @@ import MeetingDetail from './_components/MeetingDetail'
 import Recorder from './_components/Recorder'
 
 export const dynamic = 'force-dynamic'
-
-function todayDateStr(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 export default function MeetingsPage() {
   const { meetings, loading, createMeetingFromRecording, createMemoEntry, updateMeeting, processMeeting, deleteMeeting } = useMeetings()

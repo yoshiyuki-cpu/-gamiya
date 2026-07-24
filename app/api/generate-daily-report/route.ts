@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { businessDayRange, todayKey } from '@/lib/checklist'
 
 // See app/api/transcribe-meeting/route.ts for why the placeholder fallback is needed.
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || 'placeholder-anthropic-key' })
@@ -8,18 +9,12 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-function todayKey(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 const CATEGORY_LABEL: Record<string, string> = { morning: '朝礼', mtg: '会議', daily: '良かった事・悪かった事' }
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const reportDate = typeof body?.reportDate === 'string' && body.reportDate ? body.reportDate : todayKey()
-  const dayStart = `${reportDate}T00:00:00`
-  const dayEnd = `${reportDate}T23:59:59`
+  const { start: dayStart, end: dayEnd } = businessDayRange(reportDate)
 
   const [{ data: items }, { data: records }, { data: orders }, { data: meetings }] = await Promise.all([
     supabase.from('items').select('id, text, has_quantity'),
@@ -28,7 +23,7 @@ export async function POST(req: NextRequest) {
       .from('wall_orders')
       .select('table_number, item_name, quantity, completed_at')
       .gte('created_at', dayStart)
-      .lte('created_at', dayEnd),
+      .lt('created_at', dayEnd),
     supabase
       .from('meetings')
       .select('category, title, memo, summary_overview, summary_decisions, summary_action_items')
