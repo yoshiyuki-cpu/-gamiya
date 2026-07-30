@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { DailyRecord, Item } from '@/lib/supabase'
+import type { DailyRecord, Deadline, Item } from '@/lib/supabase'
 import TimerDisplay from './TimerDisplay'
 
 function StaffSelect({
@@ -133,6 +133,7 @@ type Props = {
   isFirst: boolean
   isLast: boolean
   staffList: string[]
+  deadlines: Deadline[]
   onToggleCheck: (itemId: number) => void
   onSetQuantity: (itemId: number, value: string) => void
   onSetItemStaff: (itemId: number, name: string) => void
@@ -140,6 +141,7 @@ type Props = {
   onResetTimer: (itemId: number) => void
   onMove: (direction: 1 | -1) => void
   onToggleQuantityMode: () => void
+  onSetItemDeadline: (deadlineId: number | null) => void
   onDelete: () => void
 }
 
@@ -151,6 +153,7 @@ export default function ItemRow({
   isFirst,
   isLast,
   staffList,
+  deadlines,
   onToggleCheck,
   onSetQuantity,
   onSetItemStaff,
@@ -158,30 +161,48 @@ export default function ItemRow({
   onResetTimer,
   onMove,
   onToggleQuantityMode,
+  onSetItemDeadline,
   onDelete,
 }: Props) {
   if (editMode) {
     return (
-      <div className="item">
-        <div className="order-btns">
-          <button type="button" className="order-btn" aria-label="上に移動" disabled={isFirst} onClick={() => onMove(-1)}>
-            ▲
-          </button>
-          <button type="button" className="order-btn" aria-label="下に移動" disabled={isLast} onClick={() => onMove(1)}>
-            ▼
+      <div className="item item-edit">
+        <div className="item-edit-main">
+          <div className="order-btns">
+            <button type="button" className="order-btn" aria-label="上に移動" disabled={isFirst} onClick={() => onMove(-1)}>
+              ▲
+            </button>
+            <button type="button" className="order-btn" aria-label="下に移動" disabled={isLast} onClick={() => onMove(1)}>
+              ▼
+            </button>
+          </div>
+          <span className="item-text">{item.text}</span>
+          <button type="button" className="del-btn" aria-label="削除" onClick={onDelete}>
+            ×
           </button>
         </div>
-        <span className="item-text">{item.text}</span>
-        <button
-          type="button"
-          className={`qty-toggle${item.has_quantity ? ' active' : ''}`}
-          onClick={onToggleQuantityMode}
-        >
-          数量入力
-        </button>
-        <button type="button" className="del-btn" aria-label="削除" onClick={onDelete}>
-          ×
-        </button>
+        <div className="item-edit-controls">
+          <select
+            className="deadline-select"
+            aria-label="締め切り"
+            value={item.deadline_id ?? ''}
+            onChange={(e) => onSetItemDeadline(e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">時間指定なし</option>
+            {deadlines.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className={`qty-toggle${item.has_quantity ? ' active' : ''}`}
+            onClick={onToggleQuantityMode}
+          >
+            数量入力
+          </button>
+        </div>
       </div>
     )
   }
