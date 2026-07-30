@@ -445,6 +445,46 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
   outline: 2px solid var(--ember-glow); outline-offset:2px;
 }
 
+/* Splash cover */
+.splash{
+  position: fixed; inset: 0;
+  z-index: 100;
+  display:flex; align-items:flex-end; justify-content:center;
+  cursor:pointer;
+  background: var(--bg);
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+.splash-hide{ opacity: 0; }
+.splash-img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+}
+.splash-fade{
+  position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(27,19,16,0) 40%, rgba(27,19,16,0.85) 78%, var(--bg) 100%);
+}
+.splash-text{
+  position:relative; z-index:1;
+  text-align:center;
+  padding-bottom: 64px;
+}
+.splash-eyebrow{
+  font-size:11px; letter-spacing:3px; color: var(--gold);
+  text-transform:uppercase; font-weight:700; margin-bottom:8px;
+}
+.splash-title{
+  font-family:'Shippori Mincho', serif;
+  font-weight:800;
+  font-size: 34px;
+  color: var(--cream);
+  margin-bottom:10px;
+}
+.splash-sub{
+  font-size:12.5px; color: var(--muted);
+}
+
 /* Nav: fixed bottom tab bar */
 .nav{
   position: fixed;

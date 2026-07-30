@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Nav from "./_components/Nav";
+import Splash from "./_components/Splash";
 
 export const metadata: Metadata = {
   title: "焼肉がみやアプリ",
@@ -22,6 +23,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <Splash />
         <Nav />
         {children}
       </body>
