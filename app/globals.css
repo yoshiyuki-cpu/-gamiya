@@ -422,6 +422,18 @@ body{
 .reset-btn:hover{ border-color: var(--danger); color: var(--danger); }
 .restore-btn:hover{ border-color: var(--gold); color: var(--gold); }
 .footer-note{ font-size:11px; color: var(--muted); text-align:center; }
+.next-guest-btn{
+  background: var(--ember);
+  border:none;
+  color:#fff2e6;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight:700;
+  font-family:'Noto Sans JP', sans-serif;
+  cursor:pointer;
+}
+.next-guest-btn:hover{ background: var(--ember-glow); }
 
 .done-banner{
   display:none;
