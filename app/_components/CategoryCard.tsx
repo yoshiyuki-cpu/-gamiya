@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { Category, DailyRecord, Item } from '@/lib/supabase'
+import type { Category, DailyRecord, Deadline, Item } from '@/lib/supabase'
 import ItemRow from './ItemRow'
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
   dailyRecords: Map<number, DailyRecord>
   editMode: boolean
   staffList: string[]
+  deadlines: Deadline[]
   onToggleCheck: (itemId: number) => void
   onSetQuantity: (itemId: number, value: string) => void
   onSetItemStaff: (itemId: number, name: string) => void
@@ -20,6 +21,7 @@ type Props = {
   onDeleteItem: (itemId: number) => void
   onAddItemsBulk: (categoryId: string, rawText: string) => void
   onDeleteCategory: (categoryId: string, categoryName: string) => void
+  onSetItemDeadline: (itemId: number, deadlineId: number | null) => void
 }
 
 export default function CategoryCard({
@@ -28,6 +30,7 @@ export default function CategoryCard({
   dailyRecords,
   editMode,
   staffList,
+  deadlines,
   onToggleCheck,
   onSetQuantity,
   onSetItemStaff,
@@ -38,6 +41,7 @@ export default function CategoryCard({
   onDeleteItem,
   onAddItemsBulk,
   onDeleteCategory,
+  onSetItemDeadline,
 }: Props) {
   const [bulkText, setBulkText] = useState('')
   const [expanded, setExpanded] = useState(true)
@@ -87,6 +91,7 @@ export default function CategoryCard({
             isFirst={idx === 0}
             isLast={idx === sortedItems.length - 1}
             staffList={staffList}
+            deadlines={deadlines}
             onToggleCheck={onToggleCheck}
             onSetQuantity={onSetQuantity}
             onSetItemStaff={onSetItemStaff}
@@ -94,6 +99,7 @@ export default function CategoryCard({
             onResetTimer={onResetTimer}
             onMove={(direction) => onMoveItem(category.id, item.id, direction)}
             onToggleQuantityMode={() => onToggleQuantityMode(item.id)}
+            onSetItemDeadline={(deadlineId) => onSetItemDeadline(item.id, deadlineId)}
             onDelete={() => onDeleteItem(item.id)}
           />
         ))}

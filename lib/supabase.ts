@@ -24,7 +24,15 @@ export type Item = {
   text: string
   has_quantity: boolean
   sort_order: number
+  deadline_id: number | null
   updated_at: string
+  created_at: string
+}
+
+export type Deadline = {
+  id: number
+  label: string
+  sort_order: number
   created_at: string
 }
 
