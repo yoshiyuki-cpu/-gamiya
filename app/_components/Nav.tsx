@@ -12,6 +12,10 @@ export default function Nav() {
         <span className="nav-icon" aria-hidden="true">✓</span>
         <span className="nav-label">チェック</span>
       </Link>
+      <Link href="/guest-check" className={pathname?.startsWith('/guest-check') ? 'active' : ''}>
+        <span className="nav-icon" aria-hidden="true">🪑</span>
+        <span className="nav-label">来客チェック</span>
+      </Link>
       <Link href="/orders" className={pathname?.startsWith('/orders') ? 'active' : ''}>
         <span className="nav-icon" aria-hidden="true">🍖</span>
         <span className="nav-label">壁紙注文</span>

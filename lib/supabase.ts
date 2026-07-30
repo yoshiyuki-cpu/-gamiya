@@ -86,6 +86,24 @@ export type Recipe = {
   updated_at: string
 }
 
+export type GuestCheckItem = {
+  id: number
+  text: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type SatisfactionRank = 'S' | 'A' | 'B' | 'C' | 'D' | 'E'
+
+export type GuestSatisfactionRecord = {
+  id: number
+  rank: SatisfactionRank
+  visit_reason: string | null
+  impression: string | null
+  created_at: string
+}
+
 export type MeetingStatus = 'recorded' | 'transcribing' | 'transcribed' | 'summarizing' | 'done' | 'error'
 
 export type Meeting = {
