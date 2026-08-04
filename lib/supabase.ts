@@ -102,6 +102,13 @@ export type GuestCheckItem = {
   updated_at: string
 }
 
+export type GuestCheckSession = {
+  id: number
+  table_number: string
+  item_id: number
+  checked_at: string
+}
+
 export type SatisfactionRank = 'S' | 'A' | 'B' | 'C' | 'D' | 'E'
 
 export type GuestSatisfactionRecord = {

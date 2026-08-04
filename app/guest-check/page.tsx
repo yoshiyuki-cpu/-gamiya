@@ -17,18 +17,23 @@ export default function GuestCheckPage() {
   const {
     loading,
     items,
+    activeTables,
+    currentTable,
+    selectTable,
+    backToTableSelect,
     checked,
     editMode,
     setEditMode,
     total,
     doneCount,
     toggleCheck,
-    nextGuest,
+    finishTable,
     moveItem,
     history,
     submitSatisfaction,
   } = useGuestCheck()
 
+  const [tableInput, setTableInput] = useState('')
   const [rank, setRank] = useState<SatisfactionRank | null>(null)
   const [visitReason, setVisitReason] = useState('')
   const [impression, setImpression] = useState('')
@@ -54,6 +59,81 @@ export default function GuestCheckPage() {
     setImpression('')
   }
 
+  const handleSelectTable = () => {
+    if (!tableInput.trim()) return
+    selectTable(tableInput)
+    setTableInput('')
+  }
+
+  // Table not chosen yet (and not editing the item list): show the table
+  // picker so multiple tables can be checked in parallel without their
+  // checks mixing together.
+  if (!editMode && !currentTable) {
+    return (
+      <div className="app">
+        <div className="header">
+          <div className="top-row">
+            <div>
+              <div className="eyebrow">GAMIYA</div>
+              <h1 className="title">来客チェック</h1>
+              <div className="subtitle">案内するテーブルを選んでください</div>
+            </div>
+            <button className="edit-toggle" type="button" onClick={() => setEditMode(true)}>
+              並べ替え
+            </button>
+          </div>
+        </div>
+
+        <div className="category">
+          <div className="category-head">
+            <div className="badge">卓</div>
+            <div>
+              <div className="category-name">テーブル番号を入力</div>
+              <div className="category-sub">案内するテーブル番号を入力して開始</div>
+            </div>
+          </div>
+          <div className="satisfaction-body">
+            <div className="table-select-row">
+              <input
+                className="satisfaction-input table-select-input"
+                placeholder="例) 5"
+                value={tableInput}
+                onChange={(e) => setTableInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSelectTable()
+                }}
+              />
+              <button className="next-guest-btn" type="button" onClick={handleSelectTable}>
+                開始
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {activeTables.length > 0 ? (
+          <div className="category">
+            <div className="category-head">
+              <div className="badge">進</div>
+              <div>
+                <div className="category-name">進行中のテーブル</div>
+                <div className="category-sub">タップで再開({activeTables.length}件)</div>
+              </div>
+            </div>
+            <div className="satisfaction-body">
+              <div className="table-chips">
+                {activeTables.map((t) => (
+                  <button key={t} type="button" className="table-chip" onClick={() => selectTable(t)}>
+                    テーブル{t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <div className="app">
       <div className="header">
@@ -62,13 +142,20 @@ export default function GuestCheckPage() {
             <div className="eyebrow">GAMIYA</div>
             <h1 className="title">来客チェック</h1>
             <div className="subtitle">
-              {editMode ? '並べ替え中:▲▼で項目の順番を変更できます' : `ご案内のたびに確認 ・ ${doneCount}/${total} 完了`}
+              {editMode
+                ? '並べ替え中:▲▼で項目の順番を変更できます'
+                : `テーブル${currentTable} ・ ${doneCount}/${total} 完了`}
             </div>
           </div>
           <button className={`edit-toggle${editMode ? ' active' : ''}`} type="button" onClick={() => setEditMode((v) => !v)}>
             {editMode ? '完了' : '並べ替え'}
           </button>
         </div>
+        {!editMode ? (
+          <button type="button" className="table-switch-btn" onClick={backToTableSelect}>
+            ← テーブルを変える
+          </button>
+        ) : null}
       </div>
 
       {!editMode ? <div className={`done-banner${allDone ? ' show' : ''}`}>✅ 確認完了!ご案内をどうぞ</div> : null}
@@ -211,13 +298,13 @@ export default function GuestCheckPage() {
         </div>
       ) : null}
 
-      {!editMode ? (
+      {!editMode && currentTable ? (
         <div className="footer">
-          <button className="next-guest-btn" type="button" onClick={nextGuest}>
-            次のお客様へ(チェックをリセット)
+          <button className="next-guest-btn" type="button" onClick={() => finishTable(currentTable)}>
+            このテーブルを完了(チェックをリセット)
           </button>
           <div className="footer-note">
-            テーブルセット確認はこの端末上だけの一時的な記録です。項目の並び順と満足度の記録は全端末で共有されます。
+            テーブルごとのチェック状態・項目の並び順・満足度の記録は、すべて全端末で共有されます。
           </div>
         </div>
       ) : null}

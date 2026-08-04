@@ -540,6 +540,35 @@ body{
 .rank-badge-S{ background: linear-gradient(160deg, var(--ember), #b5451f); color:#fff2e6; border-color: var(--ember-glow); }
 .rank-badge-A{ background: rgba(201,162,39,0.18); color: var(--gold); border-color: var(--gold); }
 
+/* Guest-check: table picker */
+.table-select-row{ display:flex; gap:8px; }
+.table-select-input{ flex:1; }
+.table-chips{ display:flex; gap:8px; flex-wrap:wrap; }
+.table-chip{
+  background: var(--surface-2);
+  border:1px solid var(--line);
+  color: var(--cream);
+  font-weight:700;
+  font-size:13.5px;
+  padding: 9px 16px;
+  border-radius: 20px;
+  cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+}
+.table-chip:hover{ border-color: var(--gold); }
+.table-switch-btn{
+  background:none;
+  border:none;
+  color: var(--gold);
+  font-size:12px; font-weight:700;
+  padding: 0;
+  margin-top:10px;
+  cursor:pointer;
+  position:relative; z-index:1;
+  font-family:'Noto Sans JP', sans-serif;
+}
+.table-switch-btn:hover{ text-decoration: underline; }
+
 .done-banner{
   display:none;
   background: linear-gradient(160deg, var(--ember), #b5451f);

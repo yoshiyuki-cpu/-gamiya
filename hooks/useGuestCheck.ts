@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import type { GuestCheckItem, GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
+import type { GuestCheckItem, GuestCheckSession, GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
 import { businessDayRange, todayKey } from '@/lib/checklist'
 
 // Safety cap only — history itself is scoped to "today" (the 5am-to-5am
@@ -11,10 +11,24 @@ import { businessDayRange, todayKey } from '@/lib/checklist'
 // with 40+ visits still shows every record.
 const HISTORY_SAFETY_LIMIT = 200
 
+function buildSessionMap(rows: GuestCheckSession[]): Map<string, Set<number>> {
+  const map = new Map<string, Set<number>>()
+  for (const row of rows) {
+    const set = map.get(row.table_number) ?? new Set<number>()
+    set.add(row.item_id)
+    map.set(row.table_number, set)
+  }
+  return map
+}
+
 export function useGuestCheck() {
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState<GuestCheckItem[]>([])
-  const [checked, setChecked] = useState<Set<number>>(new Set())
+  // table_number -> set of checked item ids. Shared via Supabase so any
+  // device can pick up a table that another device started, and multiple
+  // tables can be in progress at once without their checks mixing.
+  const [sessions, setSessions] = useState<Map<string, Set<number>>>(new Map())
+  const [currentTable, setCurrentTable] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [history, setHistory] = useState<GuestSatisfactionRecord[]>([])
 
@@ -30,8 +44,9 @@ export function useGuestCheck() {
     let cancelled = false
     ;(async () => {
       const { start, end } = businessDayRange(todayKey())
-      const [{ data: itemsData }, { data: historyData }] = await Promise.all([
+      const [{ data: itemsData }, { data: sessionsData }, { data: historyData }] = await Promise.all([
         supabase.from('guest_check_items').select('*').order('sort_order'),
+        supabase.from('guest_check_sessions').select('*'),
         supabase
           .from('guest_satisfaction_records')
           .select('*')
@@ -42,6 +57,7 @@ export function useGuestCheck() {
       ])
       if (cancelled) return
       setItems(itemsData ?? [])
+      setSessions(buildSessionMap((sessionsData ?? []) as GuestCheckSession[]))
       setHistory(historyData ?? [])
       setLoading(false)
     })()
@@ -51,7 +67,7 @@ export function useGuestCheck() {
   }, [])
 
   useEffect(() => {
-    const channel = supabase
+    const itemsChannel = supabase
       .channel('guest-check-items-changes')
       .on(
         'postgres_changes',
@@ -63,9 +79,38 @@ export function useGuestCheck() {
             const oldId = (payload.old as Partial<GuestCheckItem>).id
             if (oldId != null) {
               setItems((prev) => prev.filter((i) => i.id !== oldId))
-              setChecked((prev) => {
-                const next = new Set(prev)
-                next.delete(oldId)
+            }
+          }
+        },
+      )
+      .subscribe()
+
+    const sessionsChannel = supabase
+      .channel('guest-check-sessions-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'guest_check_sessions' },
+        (payload: RealtimePostgresChangesPayload<GuestCheckSession>) => {
+          if (payload.eventType === 'INSERT') {
+            const row = payload.new as GuestCheckSession
+            setSessions((prev) => {
+              const next = new Map(prev)
+              const set = new Set(next.get(row.table_number) ?? [])
+              set.add(row.item_id)
+              next.set(row.table_number, set)
+              return next
+            })
+          } else if (payload.eventType === 'DELETE') {
+            const row = payload.old as Partial<GuestCheckSession>
+            if (row.table_number != null && row.item_id != null) {
+              const tableNumber = row.table_number
+              const itemId = row.item_id
+              setSessions((prev) => {
+                const next = new Map(prev)
+                const set = new Set(next.get(tableNumber) ?? [])
+                set.delete(itemId)
+                if (set.size === 0) next.delete(tableNumber)
+                else next.set(tableNumber, set)
                 return next
               })
             }
@@ -75,21 +120,58 @@ export function useGuestCheck() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(itemsChannel)
+      supabase.removeChannel(sessionsChannel)
     }
   }, [applyItem])
 
-  const toggleCheck = useCallback((itemId: number) => {
-    setChecked((prev) => {
-      const next = new Set(prev)
-      if (next.has(itemId)) next.delete(itemId)
-      else next.add(itemId)
-      return next
-    })
+  const selectTable = useCallback((tableNumber: string) => {
+    const trimmed = tableNumber.trim()
+    if (!trimmed) return
+    setCurrentTable(trimmed)
   }, [])
 
-  const nextGuest = useCallback(() => {
-    setChecked(new Set())
+  const backToTableSelect = useCallback(() => {
+    setCurrentTable(null)
+  }, [])
+
+  const toggleCheck = useCallback(
+    async (itemId: number) => {
+      const table = currentTable
+      if (!table) return
+      const isChecked = (sessions.get(table) ?? new Set<number>()).has(itemId)
+      setSessions((prev) => {
+        const next = new Map(prev)
+        const set = new Set(next.get(table) ?? [])
+        if (isChecked) {
+          set.delete(itemId)
+          if (set.size === 0) next.delete(table)
+          else next.set(table, set)
+        } else {
+          set.add(itemId)
+          next.set(table, set)
+        }
+        return next
+      })
+      if (isChecked) {
+        await supabase.from('guest_check_sessions').delete().eq('table_number', table).eq('item_id', itemId)
+      } else {
+        await supabase
+          .from('guest_check_sessions')
+          .upsert({ table_number: table, item_id: itemId }, { onConflict: 'table_number,item_id' })
+      }
+    },
+    [currentTable, sessions],
+  )
+
+  const finishTable = useCallback(async (tableNumber: string) => {
+    setSessions((prev) => {
+      const next = new Map(prev)
+      next.delete(tableNumber)
+      return next
+    })
+    setCurrentTable((prev) => (prev === tableNumber ? null : prev))
+    await supabase.from('guest_check_sessions').delete().eq('table_number', tableNumber)
   }, [])
 
   const moveItem = useCallback(
@@ -124,19 +206,25 @@ export function useGuestCheck() {
     if (data) setHistory((prev) => [data as GuestSatisfactionRecord, ...prev].slice(0, HISTORY_SAFETY_LIMIT))
   }, [])
 
+  const activeTables = Array.from(sessions.keys()).sort((a, b) => a.localeCompare(b, 'ja', { numeric: true }))
+  const checked = currentTable ? sessions.get(currentTable) ?? new Set<number>() : new Set<number>()
   const total = items.length
   const doneCount = items.filter((i) => checked.has(i.id)).length
 
   return {
     loading,
     items,
+    activeTables,
+    currentTable,
+    selectTable,
+    backToTableSelect,
     checked,
     editMode,
     setEditMode,
     total,
     doneCount,
     toggleCheck,
-    nextGuest,
+    finishTable,
     moveItem,
     history,
     submitSatisfaction,
