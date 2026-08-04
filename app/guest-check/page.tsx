@@ -189,7 +189,7 @@ export default function GuestCheckPage() {
             <div className="badge">履</div>
             <div>
               <div className="category-name">満足度の履歴</div>
-              <div className="category-sub">直近{history.length}件</div>
+              <div className="category-sub">本日{history.length}件</div>
             </div>
             <span className={`category-chevron${historyOpen ? '' : ' collapsed'}`} aria-hidden="true">
               ▼

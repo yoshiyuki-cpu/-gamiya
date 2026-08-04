@@ -4,8 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { GuestCheckItem, GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
+import { businessDayRange, todayKey } from '@/lib/checklist'
 
-const HISTORY_LIMIT = 20
+// Safety cap only — history itself is scoped to "today" (the 5am-to-5am
+// business day, see businessDayRange), not to a fixed count, so a busy day
+// with 40+ visits still shows every record.
+const HISTORY_SAFETY_LIMIT = 200
 
 export function useGuestCheck() {
   const [loading, setLoading] = useState(true)
@@ -25,9 +29,16 @@ export function useGuestCheck() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      const { start, end } = businessDayRange(todayKey())
       const [{ data: itemsData }, { data: historyData }] = await Promise.all([
         supabase.from('guest_check_items').select('*').order('sort_order'),
-        supabase.from('guest_satisfaction_records').select('*').order('created_at', { ascending: false }).limit(HISTORY_LIMIT),
+        supabase
+          .from('guest_satisfaction_records')
+          .select('*')
+          .gte('created_at', start)
+          .lt('created_at', end)
+          .order('created_at', { ascending: false })
+          .limit(HISTORY_SAFETY_LIMIT),
       ])
       if (cancelled) return
       setItems(itemsData ?? [])
@@ -110,7 +121,7 @@ export function useGuestCheck() {
       impression: impression.trim() || null,
     }
     const { data } = await supabase.from('guest_satisfaction_records').insert(row).select().single()
-    if (data) setHistory((prev) => [data as GuestSatisfactionRecord, ...prev].slice(0, HISTORY_LIMIT))
+    if (data) setHistory((prev) => [data as GuestSatisfactionRecord, ...prev].slice(0, HISTORY_SAFETY_LIMIT))
   }, [])
 
   const total = items.length
