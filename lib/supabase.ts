@@ -114,6 +114,7 @@ export type SatisfactionRank = 'S' | 'A' | 'B' | 'C' | 'D' | 'E'
 export type GuestSatisfactionRecord = {
   id: number
   rank: SatisfactionRank
+  table_number: string | null
   visit_reason: string | null
   impression: string | null
   created_at: string

@@ -196,15 +196,19 @@ export function useGuestCheck() {
     [items, applyItem],
   )
 
-  const submitSatisfaction = useCallback(async (rank: SatisfactionRank, visitReason: string, impression: string) => {
-    const row = {
-      rank,
-      visit_reason: visitReason.trim() || null,
-      impression: impression.trim() || null,
-    }
-    const { data } = await supabase.from('guest_satisfaction_records').insert(row).select().single()
-    if (data) setHistory((prev) => [data as GuestSatisfactionRecord, ...prev].slice(0, HISTORY_SAFETY_LIMIT))
-  }, [])
+  const submitSatisfaction = useCallback(
+    async (rank: SatisfactionRank, visitReason: string, impression: string) => {
+      const row = {
+        rank,
+        table_number: currentTable,
+        visit_reason: visitReason.trim() || null,
+        impression: impression.trim() || null,
+      }
+      const { data } = await supabase.from('guest_satisfaction_records').insert(row).select().single()
+      if (data) setHistory((prev) => [data as GuestSatisfactionRecord, ...prev].slice(0, HISTORY_SAFETY_LIMIT))
+    },
+    [currentTable],
+  )
 
   const activeTables = Array.from(sessions.keys()).sort((a, b) => a.localeCompare(b, 'ja', { numeric: true }))
   const checked = currentTable ? sessions.get(currentTable) ?? new Set<number>() : new Set<number>()

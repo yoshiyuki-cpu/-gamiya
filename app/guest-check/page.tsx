@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useGuestCheck } from '@/hooks/useGuestCheck'
-import type { SatisfactionRank } from '@/lib/supabase'
+import type { GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +11,45 @@ const RANKS: SatisfactionRank[] = ['S', 'A', 'B', 'C', 'D', 'E']
 function formatHistoryTime(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function HistoryCard({
+  history,
+  open,
+  onToggle,
+}: {
+  history: GuestSatisfactionRecord[]
+  open: boolean
+  onToggle: () => void
+}) {
+  return (
+    <div className="category">
+      <div className="category-head" onClick={onToggle} role="button" tabIndex={0}>
+        <div className="badge">履</div>
+        <div>
+          <div className="category-name">お客様の評価の履歴</div>
+          <div className="category-sub">本日{history.length}件</div>
+        </div>
+        <span className={`category-chevron${open ? '' : ' collapsed'}`} aria-hidden="true">
+          ▼
+        </span>
+      </div>
+      <div className={`items${open ? '' : ' collapsed'}`}>
+        {history.length === 0 ? <div className="empty-hint">まだ記録がありません。</div> : null}
+        {history.map((h) => (
+          <div key={h.id} className="history-row">
+            <div className="history-row-top">
+              <span className={`rank-badge rank-badge-${h.rank}`}>{h.rank}</span>
+              {h.table_number ? <span className="history-table">卓{h.table_number}</span> : null}
+              <span className="history-time">{formatHistoryTime(h.created_at)}</span>
+            </div>
+            {h.visit_reason ? <div className="history-text">来客動機: {h.visit_reason}</div> : null}
+            {h.impression ? <div className="history-text">お客様の声: {h.impression}</div> : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function GuestCheckPage() {
@@ -130,6 +169,8 @@ export default function GuestCheckPage() {
             </div>
           </div>
         ) : null}
+
+        <HistoryCard history={history} open={historyOpen} onToggle={() => setHistoryOpen((v) => !v)} />
       </div>
     )
   }
@@ -221,8 +262,8 @@ export default function GuestCheckPage() {
           <div className="category-head">
             <div className="badge">評</div>
             <div>
-              <div className="category-name">お客様満足度の判定</div>
-              <div className="category-sub">お会計・お見送りのあとに記録</div>
+              <div className="category-name">お客様の評価(テーブル{currentTable})</div>
+              <div className="category-sub">お見送りのあと、このテーブルのお客様の様子を記録</div>
             </div>
           </div>
           <div className="satisfaction-body">
@@ -249,12 +290,12 @@ export default function GuestCheckPage() {
               onChange={(e) => setVisitReason(e.target.value)}
             />
             <label className="satisfaction-label" htmlFor="impression">
-              焼肉がみやの感想
+              お客様の声(なんと言って帰られたか)
             </label>
             <textarea
               id="impression"
               className="satisfaction-input"
-              placeholder="お客様からいただいた感想・様子など"
+              placeholder="例)「タンが最高だった」「また来ます」など帰り際の一言・楽しんでいた様子"
               value={impression}
               onChange={(e) => setImpression(e.target.value)}
             />
@@ -266,36 +307,7 @@ export default function GuestCheckPage() {
       ) : null}
 
       {!editMode ? (
-        <div className="category">
-          <div
-            className="category-head"
-            onClick={() => setHistoryOpen((v) => !v)}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="badge">履</div>
-            <div>
-              <div className="category-name">満足度の履歴</div>
-              <div className="category-sub">本日{history.length}件</div>
-            </div>
-            <span className={`category-chevron${historyOpen ? '' : ' collapsed'}`} aria-hidden="true">
-              ▼
-            </span>
-          </div>
-          <div className={`items${historyOpen ? '' : ' collapsed'}`}>
-            {history.length === 0 ? <div className="empty-hint">まだ記録がありません。</div> : null}
-            {history.map((h) => (
-              <div key={h.id} className="history-row">
-                <div className="history-row-top">
-                  <span className={`rank-badge rank-badge-${h.rank}`}>{h.rank}</span>
-                  <span className="history-time">{formatHistoryTime(h.created_at)}</span>
-                </div>
-                {h.visit_reason ? <div className="history-text">来客動機: {h.visit_reason}</div> : null}
-                {h.impression ? <div className="history-text">感想: {h.impression}</div> : null}
-              </div>
-            ))}
-          </div>
-        </div>
+        <HistoryCard history={history} open={historyOpen} onToggle={() => setHistoryOpen((v) => !v)} />
       ) : null}
 
       {!editMode && currentTable ? (
