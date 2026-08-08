@@ -528,6 +528,13 @@ body{
 .history-row:last-child{ border-bottom:none; }
 .history-row-top{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
 .history-time{ font-size:11px; color: var(--muted); }
+.history-table{
+  flex-shrink:0;
+  font-size:11px; font-weight:700; color: var(--cream);
+  background: rgba(162,144,124,0.18);
+  padding:3px 9px; border-radius:20px;
+  white-space:nowrap;
+}
 .history-text{ font-size:12.5px; color: var(--cream); line-height:1.5; }
 .rank-badge{
   flex-shrink:0;
@@ -539,6 +546,57 @@ body{
 }
 .rank-badge-S{ background: linear-gradient(160deg, var(--ember), #b5451f); color:#fff2e6; border-color: var(--ember-glow); }
 .rank-badge-A{ background: rgba(201,162,39,0.18); color: var(--gold); border-color: var(--gold); }
+
+/* Guest ratings: per-group ledger */
+.visit-row{
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.visit-row:last-child{ border-bottom:none; }
+.visit-row-head{
+  display:flex; align-items:center; gap:8px;
+  cursor:pointer;
+  min-height:28px;
+}
+.visit-row-head:hover{ background: rgba(255,255,255,0.02); }
+.visit-name{
+  font-size:14px; font-weight:700; color: var(--cream);
+  flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.visit-time{
+  flex-shrink:0;
+  font-size:12px; color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.unrated-chip{
+  flex-shrink:0;
+  font-size:10.5px; font-weight:700;
+  color: var(--ember-glow);
+  border:1px dashed var(--ember-glow);
+  padding:3px 8px; border-radius:20px;
+  white-space:nowrap;
+}
+.visit-summary{ margin-top:6px; padding-left:2px; }
+.visit-editor{
+  margin-top:10px;
+  display:flex; flex-direction:column; gap:10px;
+}
+.visit-editor-row{ display:flex; gap:8px; }
+.visit-name-input{ flex:1; min-width:0; }
+.visit-time-input{ width:108px; flex-shrink:0; }
+.visit-table-input{ width:56px; flex-shrink:0; text-align:center; }
+.visit-delete-btn{
+  background:none;
+  border:none;
+  color: var(--danger);
+  font-size:12px;
+  padding: 4px;
+  cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+  align-self:center;
+}
+.visit-delete-btn:hover{ text-decoration:underline; }
 
 /* Guest-check: table picker */
 .table-select-row{ display:flex; gap:8px; }

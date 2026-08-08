@@ -1,17 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useGuestCheck } from '@/hooks/useGuestCheck'
-import type { SatisfactionRank } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
-
-const RANKS: SatisfactionRank[] = ['S', 'A', 'B', 'C', 'D', 'E']
-
-function formatHistoryTime(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
 
 export default function GuestCheckPage() {
   const {
@@ -29,15 +22,9 @@ export default function GuestCheckPage() {
     toggleCheck,
     finishTable,
     moveItem,
-    history,
-    submitSatisfaction,
   } = useGuestCheck()
 
   const [tableInput, setTableInput] = useState('')
-  const [rank, setRank] = useState<SatisfactionRank | null>(null)
-  const [visitReason, setVisitReason] = useState('')
-  const [impression, setImpression] = useState('')
-  const [historyOpen, setHistoryOpen] = useState(false)
 
   if (loading) {
     return (
@@ -50,14 +37,6 @@ export default function GuestCheckPage() {
   }
 
   const allDone = total > 0 && doneCount === total
-
-  const handleSubmitSatisfaction = async () => {
-    if (!rank) return
-    await submitSatisfaction(rank, visitReason, impression)
-    setRank(null)
-    setVisitReason('')
-    setImpression('')
-  }
 
   const handleSelectTable = () => {
     if (!tableInput.trim()) return
@@ -75,13 +54,16 @@ export default function GuestCheckPage() {
           <div className="top-row">
             <div>
               <div className="eyebrow">GAMIYA</div>
-              <h1 className="title">来客チェック</h1>
+              <h1 className="title">テーブルチェック表</h1>
               <div className="subtitle">案内するテーブルを選んでください</div>
             </div>
             <button className="edit-toggle" type="button" onClick={() => setEditMode(true)}>
               並べ替え
             </button>
           </div>
+          <Link href="/guests" className="table-switch-btn">
+            ← お客様評価に戻る
+          </Link>
         </div>
 
         <div className="category">
@@ -140,7 +122,7 @@ export default function GuestCheckPage() {
         <div className="top-row">
           <div>
             <div className="eyebrow">GAMIYA</div>
-            <h1 className="title">来客チェック</h1>
+            <h1 className="title">テーブルチェック表</h1>
             <div className="subtitle">
               {editMode
                 ? '並べ替え中:▲▼で項目の順番を変更できます'
@@ -216,95 +198,13 @@ export default function GuestCheckPage() {
         </div>
       </div>
 
-      {!editMode ? (
-        <div className="category">
-          <div className="category-head">
-            <div className="badge">評</div>
-            <div>
-              <div className="category-name">お客様満足度の判定</div>
-              <div className="category-sub">お会計・お見送りのあとに記録</div>
-            </div>
-          </div>
-          <div className="satisfaction-body">
-            <div className="rank-row">
-              {RANKS.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={`rank-btn${rank === r ? ' active' : ''}`}
-                  onClick={() => setRank(r)}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-            <label className="satisfaction-label" htmlFor="visitReason">
-              来客動機
-            </label>
-            <textarea
-              id="visitReason"
-              className="satisfaction-input"
-              placeholder="例)家族の誕生日、会社の飲み会、近くて初めて来店 など"
-              value={visitReason}
-              onChange={(e) => setVisitReason(e.target.value)}
-            />
-            <label className="satisfaction-label" htmlFor="impression">
-              焼肉がみやの感想
-            </label>
-            <textarea
-              id="impression"
-              className="satisfaction-input"
-              placeholder="お客様からいただいた感想・様子など"
-              value={impression}
-              onChange={(e) => setImpression(e.target.value)}
-            />
-            <button className="next-guest-btn satisfaction-submit" type="button" disabled={!rank} onClick={handleSubmitSatisfaction}>
-              記録する
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {!editMode ? (
-        <div className="category">
-          <div
-            className="category-head"
-            onClick={() => setHistoryOpen((v) => !v)}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="badge">履</div>
-            <div>
-              <div className="category-name">満足度の履歴</div>
-              <div className="category-sub">本日{history.length}件</div>
-            </div>
-            <span className={`category-chevron${historyOpen ? '' : ' collapsed'}`} aria-hidden="true">
-              ▼
-            </span>
-          </div>
-          <div className={`items${historyOpen ? '' : ' collapsed'}`}>
-            {history.length === 0 ? <div className="empty-hint">まだ記録がありません。</div> : null}
-            {history.map((h) => (
-              <div key={h.id} className="history-row">
-                <div className="history-row-top">
-                  <span className={`rank-badge rank-badge-${h.rank}`}>{h.rank}</span>
-                  <span className="history-time">{formatHistoryTime(h.created_at)}</span>
-                </div>
-                {h.visit_reason ? <div className="history-text">来客動機: {h.visit_reason}</div> : null}
-                {h.impression ? <div className="history-text">感想: {h.impression}</div> : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       {!editMode && currentTable ? (
         <div className="footer">
           <button className="next-guest-btn" type="button" onClick={() => finishTable(currentTable)}>
             このテーブルを完了(チェックをリセット)
           </button>
           <div className="footer-note">
-            テーブルごとのチェック状態・項目の並び順・満足度の記録は、すべて全端末で共有されます。
+            テーブルごとのチェック状態と項目の並び順は全端末で共有されます。お客様の評価は「お客様評価」ページで記録します。
           </div>
         </div>
       ) : null}

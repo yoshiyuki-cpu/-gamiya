@@ -111,12 +111,18 @@ export type GuestCheckSession = {
 
 export type SatisfactionRank = 'S' | 'A' | 'B' | 'C' | 'D' | 'E'
 
+// 1組(1グループ)のお客様の記録。予約名・予約時間で先に登録しておき、
+// 帰り際に rank(S〜E)とお客様の声を書き足す台帳として使う。
 export type GuestSatisfactionRecord = {
   id: number
-  rank: SatisfactionRank
+  rank: SatisfactionRank | null
+  table_number: string | null
+  reservation_name: string | null
+  reservation_time: string | null
   visit_reason: string | null
   impression: string | null
   created_at: string
+  updated_at: string
 }
 
 export type MeetingStatus = 'recorded' | 'transcribing' | 'transcribed' | 'summarizing' | 'done' | 'error'
