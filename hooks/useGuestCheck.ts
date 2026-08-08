@@ -3,13 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import type { GuestCheckItem, GuestCheckSession, GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
-import { businessDayRange, todayKey } from '@/lib/checklist'
-
-// Safety cap only — history itself is scoped to "today" (the 5am-to-5am
-// business day, see businessDayRange), not to a fixed count, so a busy day
-// with 40+ visits still shows every record.
-const HISTORY_SAFETY_LIMIT = 200
+import type { GuestCheckItem, GuestCheckSession } from '@/lib/supabase'
 
 function buildSessionMap(rows: GuestCheckSession[]): Map<string, Set<number>> {
   const map = new Map<string, Set<number>>()
@@ -30,7 +24,6 @@ export function useGuestCheck() {
   const [sessions, setSessions] = useState<Map<string, Set<number>>>(new Map())
   const [currentTable, setCurrentTable] = useState<string | null>(null)
   const [editMode, setEditMode] = useState(false)
-  const [history, setHistory] = useState<GuestSatisfactionRecord[]>([])
 
   const applyItem = useCallback((row: GuestCheckItem) => {
     setItems((prev) => {
@@ -43,22 +36,13 @@ export function useGuestCheck() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const { start, end } = businessDayRange(todayKey())
-      const [{ data: itemsData }, { data: sessionsData }, { data: historyData }] = await Promise.all([
+      const [{ data: itemsData }, { data: sessionsData }] = await Promise.all([
         supabase.from('guest_check_items').select('*').order('sort_order'),
         supabase.from('guest_check_sessions').select('*'),
-        supabase
-          .from('guest_satisfaction_records')
-          .select('*')
-          .gte('created_at', start)
-          .lt('created_at', end)
-          .order('created_at', { ascending: false })
-          .limit(HISTORY_SAFETY_LIMIT),
       ])
       if (cancelled) return
       setItems(itemsData ?? [])
       setSessions(buildSessionMap((sessionsData ?? []) as GuestCheckSession[]))
-      setHistory(historyData ?? [])
       setLoading(false)
     })()
     return () => {
@@ -196,20 +180,6 @@ export function useGuestCheck() {
     [items, applyItem],
   )
 
-  const submitSatisfaction = useCallback(
-    async (rank: SatisfactionRank, visitReason: string, impression: string) => {
-      const row = {
-        rank,
-        table_number: currentTable,
-        visit_reason: visitReason.trim() || null,
-        impression: impression.trim() || null,
-      }
-      const { data } = await supabase.from('guest_satisfaction_records').insert(row).select().single()
-      if (data) setHistory((prev) => [data as GuestSatisfactionRecord, ...prev].slice(0, HISTORY_SAFETY_LIMIT))
-    },
-    [currentTable],
-  )
-
   const activeTables = Array.from(sessions.keys()).sort((a, b) => a.localeCompare(b, 'ja', { numeric: true }))
   const checked = currentTable ? sessions.get(currentTable) ?? new Set<number>() : new Set<number>()
   const total = items.length
@@ -230,7 +200,5 @@ export function useGuestCheck() {
     toggleCheck,
     finishTable,
     moveItem,
-    history,
-    submitSatisfaction,
   }
 }
