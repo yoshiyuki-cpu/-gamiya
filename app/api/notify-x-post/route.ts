@@ -61,7 +61,7 @@ async function handle(req: NextRequest) {
   const text =
     '📣 Xの投稿リマインドです\n\n' +
     '本日はまだ投稿が記録されていません。\n' +
-    '18時前後の投稿をお願いします!\n\n' +
+    '17時30分前後の投稿をお願いします!\n\n' +
     '投稿できたら、アプリの「日報」画面で\n「投稿した」を押してください。' +
     (link ? `\n${link}/reports` : '')
 
