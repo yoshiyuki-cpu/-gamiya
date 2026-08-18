@@ -18,7 +18,7 @@ export default function XPostCard() {
         <div className="badge">X</div>
         <div>
           <div className="category-name">X(旧Twitter)の投稿</div>
-          <div className="category-sub">目標: 毎日18時前後 ・ 今月{monthCount}日投稿</div>
+          <div className="category-sub">目標: 毎日17時30分前後 ・ 今月{monthCount}日投稿</div>
         </div>
         <span className={`x-status${posted ? ' done' : ''}`}>{posted ? '投稿済み' : '未投稿'}</span>
       </div>
@@ -33,7 +33,7 @@ export default function XPostCard() {
         {posted ? (
           <>
             <div className="x-posted-note">
-              本日は投稿済みです{todayPost?.staff_name ? `(${todayPost.staff_name})` : ''}。18時のLINEリマインドは飛びません。
+              本日は投稿済みです{todayPost?.staff_name ? `(${todayPost.staff_name})` : ''}。17時30分のLINEリマインドは飛びません。
             </div>
             {todayPost?.memo ? <div className="history-text">内容: {todayPost.memo}</div> : null}
             <button className="visit-delete-btn" type="button" disabled={saving} onClick={() => void unmarkPosted()}>
