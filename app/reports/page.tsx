@@ -1,6 +1,7 @@
 'use client'
 
 import { useDailyReports } from '@/hooks/useDailyReports'
+import XPostCard from '../_components/XPostCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,8 @@ export default function ReportsPage() {
       </div>
 
       {error ? <div className="recorder-error">{error}</div> : null}
+
+      <XPostCard />
 
       <div className="meeting-list">
         {reports.length === 0 ? (

@@ -72,6 +72,16 @@ export type WallOrder = {
   completed_at: string | null
 }
 
+// 行が存在する = その営業日にXへ投稿した、という意味。未投稿の日は行が無い。
+export type XPost = {
+  id: number
+  post_date: string
+  posted_at: string
+  staff_name: string | null
+  memo: string | null
+  created_at: string
+}
+
 export type DailyReport = {
   id: number
   report_date: string

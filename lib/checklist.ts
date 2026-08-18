@@ -27,6 +27,19 @@ export function todayLabelText(): string {
   return businessDate().toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })
 }
 
+// 今日(営業日基準)から遡って count 日分のキーを古い順で返す。
+// 直近の投稿状況をドットで並べて見せるのに使う。
+export function recentBusinessDayKeys(count: number): string[] {
+  const base = businessDate()
+  const keys: string[] = []
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(base)
+    d.setDate(d.getDate() - i)
+    keys.push(dateKeyFor(d))
+  }
+  return keys
+}
+
 // The [start, end) instant range for the business day identified by dateKey
 // (a 'YYYY-MM-DD' string from todayKey), used to scope timestamp-column queries
 // (e.g. wall_orders.created_at) to the same 5am-to-5am window.
