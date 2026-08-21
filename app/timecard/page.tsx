@@ -5,6 +5,7 @@ import { useTimecard } from '@/hooks/useTimecard'
 import type { StaffRow } from '@/hooks/useTimecard'
 import { todayLabelText } from '@/lib/checklist'
 import { breakMs, durationLabel, timeLabel, workedMs } from '@/lib/timecard'
+import StaffManager from './_components/StaffManager'
 import TimecardAdmin from './_components/TimecardAdmin'
 
 export const dynamic = 'force-dynamic'
@@ -83,9 +84,9 @@ function StaffCard({
 }
 
 export default function TimecardPage() {
-  const { loading, busy, rows, clockIn, clockOut, startBreak, endBreak, addStaff } = useTimecard()
+  const { loading, busy, rows, clockIn, clockOut, startBreak, endBreak, addStaff, renameStaff, deleteStaff, countStaffRecords } =
+    useTimecard()
   const [tab, setTab] = useState<'punch' | 'admin'>('punch')
-  const [newStaff, setNewStaff] = useState('')
   const [now, setNow] = useState(() => Date.now())
 
   // 勤務中の「実働」を伸ばしていく。分単位の表示なので30秒ごとで足りる。
@@ -157,41 +158,13 @@ export default function TimecardPage() {
             ))}
           </div>
 
-          <div className="category">
-            <div className="category-head">
-              <div className="badge">＋</div>
-              <div>
-                <div className="category-name">スタッフを追加</div>
-                <div className="category-sub">ここで追加した名前は他の画面の担当者欄にも出ます</div>
-              </div>
-            </div>
-            <div className="satisfaction-body">
-              <div className="table-select-row">
-                <input
-                  className="satisfaction-input table-select-input"
-                  placeholder="例) 山田"
-                  value={newStaff}
-                  onChange={(e) => setNewStaff(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      void addStaff(newStaff)
-                      setNewStaff('')
-                    }
-                  }}
-                />
-                <button
-                  className="next-guest-btn"
-                  type="button"
-                  onClick={() => {
-                    void addStaff(newStaff)
-                    setNewStaff('')
-                  }}
-                >
-                  追加
-                </button>
-              </div>
-            </div>
-          </div>
+          <StaffManager
+            names={rows.map((r) => r.name)}
+            onAdd={addStaff}
+            onRename={renameStaff}
+            onDelete={deleteStaff}
+            onCountRecords={countStaffRecords}
+          />
 
           <div className="footer">
             <div className="footer-note">
