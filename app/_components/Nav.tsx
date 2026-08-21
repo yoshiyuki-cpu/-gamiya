@@ -16,6 +16,10 @@ export default function Nav() {
         <span className="nav-icon" aria-hidden="true">⭐</span>
         <span className="nav-label">お客様評価</span>
       </Link>
+      <Link href="/timecard" className={pathname?.startsWith('/timecard') ? 'active' : ''}>
+        <span className="nav-icon" aria-hidden="true">⏱</span>
+        <span className="nav-label">勤怠</span>
+      </Link>
       <Link href="/orders" className={pathname?.startsWith('/orders') ? 'active' : ''}>
         <span className="nav-icon" aria-hidden="true">🍖</span>
         <span className="nav-label">壁紙注文</span>
