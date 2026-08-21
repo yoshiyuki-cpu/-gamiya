@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useGuestVisits } from '@/hooks/useGuestVisits'
 import type { VisitPatch } from '@/hooks/useGuestVisits'
 import type { GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
@@ -137,9 +136,6 @@ export default function GuestsPage() {
             </div>
           </div>
         </div>
-        <Link href="/guest-check" className="table-switch-btn">
-          テーブルチェック表を開く →
-        </Link>
       </div>
 
       <div className={`done-banner${allRated ? ' show' : ''}`}>✅ 本日の全組に評価がつきました!</div>
