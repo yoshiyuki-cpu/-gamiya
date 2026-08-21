@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import type { Category, DailyRecord, Deadline, Item } from '@/lib/supabase'
+import type { Category, DailyRecord, Item } from '@/lib/supabase'
 import { currentTimeLabel, todayKey } from '@/lib/checklist'
-
-export type ViewMode = 'category' | 'time'
 
 const STAFF_STORAGE_KEY = 'gamiya:current-staff'
 const QUANTITY_DEBOUNCE_MS = 500
@@ -20,8 +18,6 @@ function emptyRecord(itemId: number, recordDate: string): DailyRecord {
     quantity_value: null,
     checked_time: null,
     staff_name: null,
-    timer_started_at: null,
-    timer_accumulated_ms: 0,
     updated_at: '',
   }
 }
@@ -30,12 +26,10 @@ export function useChecklist() {
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<Item[]>([])
-  const [deadlines, setDeadlines] = useState<Deadline[]>([])
   const [dailyRecords, setDailyRecords] = useState<Map<number, DailyRecord>>(new Map())
   const [staffList, setStaffList] = useState<string[]>([])
   const [currentStaff, setCurrentStaffState] = useState('')
   const [editMode, setEditMode] = useState(false)
-  const [viewMode, setViewMode] = useState<ViewMode>('category')
   const [dailyKey, setDailyKey] = useState(todayKey)
 
   const dailyKeyRef = useRef(dailyKey)
@@ -91,29 +85,19 @@ export function useChecklist() {
     })
   }, [])
 
-  const applyDeadline = useCallback((row: Deadline) => {
-    setDeadlines((prev) => {
-      const idx = prev.findIndex((d) => d.id === row.id)
-      const next = idx === -1 ? [...prev, row] : prev.map((d) => (d.id === row.id ? row : d))
-      return next.slice().sort((a, b) => a.sort_order - b.sort_order)
-    })
-  }, [])
-
-  // ---- initial load: categories + items + deadlines + staff list (once) ---
+  // ---- initial load: categories + items + staff list (once) ---
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const [{ data: categoriesData }, { data: itemsData }, { data: deadlinesData }, { data: staffData }] = await Promise.all([
+      const [{ data: categoriesData }, { data: itemsData }, { data: staffData }] = await Promise.all([
         supabase.from('categories').select('*').order('sort_order'),
         supabase.from('items').select('*').order('sort_order'),
-        supabase.from('deadlines').select('*').order('sort_order'),
         supabase.from('staff_names').select('*').order('name'),
       ])
       if (cancelled) return
       setCategories(categoriesData ?? [])
       setItems(itemsData ?? [])
-      setDeadlines(deadlinesData ?? [])
       setStaffList((staffData ?? []).map((s) => s.name))
       setLoading(false)
     })()
@@ -241,25 +225,6 @@ export function useChecklist() {
       )
       .subscribe()
 
-    const deadlinesChannel = supabase
-      .channel('deadlines-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'deadlines' },
-        (payload: RealtimePostgresChangesPayload<Deadline>) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            applyDeadline(payload.new as Deadline)
-          } else if (payload.eventType === 'DELETE') {
-            const oldId = (payload.old as Partial<Deadline>).id
-            if (oldId != null) {
-              setDeadlines((prev) => prev.filter((d) => d.id !== oldId))
-              setItems((prev) => prev.map((i) => (i.deadline_id === oldId ? { ...i, deadline_id: null } : i)))
-            }
-          }
-        },
-      )
-      .subscribe()
-
     const staffChannel = supabase
       .channel('staff-names-changes')
       .on(
@@ -277,10 +242,9 @@ export function useChecklist() {
     return () => {
       supabase.removeChannel(categoriesChannel)
       supabase.removeChannel(itemsChannel)
-      supabase.removeChannel(deadlinesChannel)
       supabase.removeChannel(staffChannel)
     }
-  }, [applyCategory, applyItem, applyDeadline])
+  }, [applyCategory, applyItem])
 
   // ---- item interactions ----------------------------------------------
 
@@ -340,61 +304,6 @@ export function useChecklist() {
           if (data) applyDailyRecord(data as DailyRecord)
         }, QUANTITY_DEBOUNCE_MS),
       )
-    },
-    [mergeRecord, applyDailyRecord],
-  )
-
-  const toggleTimer = useCallback(
-    async (itemId: number) => {
-      const record = dailyRecords.get(itemId)
-      const running = !!record?.timer_started_at
-      if (running) {
-        const elapsed =
-          (record?.timer_accumulated_ms ?? 0) + (Date.now() - new Date(record!.timer_started_at as string).getTime())
-        mergeRecord(itemId, { timer_accumulated_ms: elapsed, timer_started_at: null })
-        const { data } = await supabase
-          .from('daily_records')
-          .upsert(
-            { item_id: itemId, record_date: dailyKeyRef.current, timer_accumulated_ms: elapsed, timer_started_at: null },
-            { onConflict: 'item_id,record_date' },
-          )
-          .select()
-          .single()
-        if (data) applyDailyRecord(data as DailyRecord)
-      } else {
-        const startedAtIso = new Date().toISOString()
-        mergeRecord(itemId, { timer_started_at: startedAtIso })
-        const { data } = await supabase
-          .from('daily_records')
-          .upsert(
-            {
-              item_id: itemId,
-              record_date: dailyKeyRef.current,
-              timer_started_at: startedAtIso,
-              timer_accumulated_ms: record?.timer_accumulated_ms ?? 0,
-            },
-            { onConflict: 'item_id,record_date' },
-          )
-          .select()
-          .single()
-        if (data) applyDailyRecord(data as DailyRecord)
-      }
-    },
-    [dailyRecords, mergeRecord, applyDailyRecord],
-  )
-
-  const resetTimer = useCallback(
-    async (itemId: number) => {
-      mergeRecord(itemId, { timer_accumulated_ms: 0, timer_started_at: null })
-      const { data } = await supabase
-        .from('daily_records')
-        .upsert(
-          { item_id: itemId, record_date: dailyKeyRef.current, timer_accumulated_ms: 0, timer_started_at: null },
-          { onConflict: 'item_id,record_date' },
-        )
-        .select()
-        .single()
-      if (data) applyDailyRecord(data as DailyRecord)
     },
     [mergeRecord, applyDailyRecord],
   )
@@ -486,58 +395,6 @@ export function useChecklist() {
     [items, applyItem],
   )
 
-  const setItemDeadline = useCallback(
-    async (itemId: number, deadlineId: number | null) => {
-      setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, deadline_id: deadlineId } : i)))
-      const { data } = await supabase.from('items').update({ deadline_id: deadlineId }).eq('id', itemId).select().single()
-      if (data) applyItem(data as Item)
-    },
-    [applyItem],
-  )
-
-  // ---- edit-mode: deadlines --------------------------------------------
-
-  const addDeadline = useCallback(
-    async (label: string) => {
-      const trimmed = label.trim()
-      if (!trimmed) return
-      const nextSortOrder = deadlines.length ? Math.max(...deadlines.map((d) => d.sort_order)) + 100 : 100
-      const { data } = await supabase.from('deadlines').insert({ label: trimmed, sort_order: nextSortOrder }).select().single()
-      if (data) setDeadlines((prev) => [...prev, data as Deadline].sort((a, b) => a.sort_order - b.sort_order))
-    },
-    [deadlines],
-  )
-
-  const deleteDeadline = useCallback(async (deadlineId: number, label: string) => {
-    const ok = window.confirm(`「${label}」を削除します。この締め切りが設定されていた項目は「時間指定なし」に戻ります。よろしいですか?`)
-    if (!ok) return
-    setDeadlines((prev) => prev.filter((d) => d.id !== deadlineId))
-    setItems((prev) => prev.map((i) => (i.deadline_id === deadlineId ? { ...i, deadline_id: null } : i)))
-    await supabase.from('deadlines').delete().eq('id', deadlineId)
-  }, [])
-
-  const moveDeadline = useCallback(
-    async (deadlineId: number, direction: 1 | -1) => {
-      const sorted = deadlines.slice().sort((a, b) => a.sort_order - b.sort_order)
-      const idx = sorted.findIndex((d) => d.id === deadlineId)
-      const targetIdx = idx + direction
-      if (idx === -1 || targetIdx < 0 || targetIdx >= sorted.length) return
-      const target = sorted[targetIdx]
-      let newSortOrder: number
-      if (direction === -1) {
-        const before = sorted[targetIdx - 1]
-        newSortOrder = before ? (before.sort_order + target.sort_order) / 2 : target.sort_order - 100
-      } else {
-        const after = sorted[targetIdx + 1]
-        newSortOrder = after ? (target.sort_order + after.sort_order) / 2 : target.sort_order + 100
-      }
-      setDeadlines((prev) => prev.map((d) => (d.id === deadlineId ? { ...d, sort_order: newSortOrder } : d)))
-      const { data } = await supabase.from('deadlines').update({ sort_order: newSortOrder }).eq('id', deadlineId).select().single()
-      if (data) applyDeadline(data as Deadline)
-    },
-    [deadlines, applyDeadline],
-  )
-
   const toggleQuantityMode = useCallback(
     async (itemId: number) => {
       const item = items.find((i) => i.id === itemId)
@@ -586,7 +443,6 @@ export function useChecklist() {
     loading,
     categories,
     items,
-    deadlines,
     dailyRecords,
     staffList,
     currentStaff,
@@ -594,26 +450,18 @@ export function useChecklist() {
     commitCurrentStaff,
     editMode,
     setEditMode,
-    viewMode,
-    setViewMode,
     dailyKey,
     total,
     doneCount,
     toggleCheck,
     setQuantity,
     setItemStaff,
-    toggleTimer,
-    resetTimer,
     addCategory,
     deleteCategory,
     addItemsBulk,
     deleteItem,
     moveItem,
     toggleQuantityMode,
-    setItemDeadline,
-    addDeadline,
-    deleteDeadline,
-    moveDeadline,
     resetDailyChecks,
     restoreDefaults,
   }

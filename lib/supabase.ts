@@ -24,15 +24,7 @@ export type Item = {
   text: string
   has_quantity: boolean
   sort_order: number
-  deadline_id: number | null
   updated_at: string
-  created_at: string
-}
-
-export type Deadline = {
-  id: number
-  label: string
-  sort_order: number
   created_at: string
 }
 
@@ -44,8 +36,6 @@ export type DailyRecord = {
   quantity_value: string | null
   checked_time: string | null
   staff_name: string | null
-  timer_started_at: string | null
-  timer_accumulated_ms: number
   updated_at: string
 }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { Category, DailyRecord, Deadline, Item } from '@/lib/supabase'
+import type { Category, DailyRecord, Item } from '@/lib/supabase'
 import ItemRow from './ItemRow'
 
 type Props = {
@@ -10,18 +10,14 @@ type Props = {
   dailyRecords: Map<number, DailyRecord>
   editMode: boolean
   staffList: string[]
-  deadlines: Deadline[]
   onToggleCheck: (itemId: number) => void
   onSetQuantity: (itemId: number, value: string) => void
   onSetItemStaff: (itemId: number, name: string) => void
-  onToggleTimer: (itemId: number) => void
-  onResetTimer: (itemId: number) => void
   onMoveItem: (categoryId: string, itemId: number, direction: 1 | -1) => void
   onToggleQuantityMode: (itemId: number) => void
   onDeleteItem: (itemId: number) => void
   onAddItemsBulk: (categoryId: string, rawText: string) => void
   onDeleteCategory: (categoryId: string, categoryName: string) => void
-  onSetItemDeadline: (itemId: number, deadlineId: number | null) => void
 }
 
 export default function CategoryCard({
@@ -30,23 +26,18 @@ export default function CategoryCard({
   dailyRecords,
   editMode,
   staffList,
-  deadlines,
   onToggleCheck,
   onSetQuantity,
   onSetItemStaff,
-  onToggleTimer,
-  onResetTimer,
   onMoveItem,
   onToggleQuantityMode,
   onDeleteItem,
   onAddItemsBulk,
   onDeleteCategory,
-  onSetItemDeadline,
 }: Props) {
   const [bulkText, setBulkText] = useState('')
   const [expanded, setExpanded] = useState(true)
   const sortedItems = [...items].sort((a, b) => a.sort_order - b.sort_order)
-  const showTimer = category.id === 'prep'
   const open = editMode || expanded
 
   return (
@@ -87,19 +78,14 @@ export default function CategoryCard({
             item={item}
             record={dailyRecords.get(item.id)}
             editMode={editMode}
-            showTimer={showTimer}
             isFirst={idx === 0}
             isLast={idx === sortedItems.length - 1}
             staffList={staffList}
-            deadlines={deadlines}
             onToggleCheck={onToggleCheck}
             onSetQuantity={onSetQuantity}
             onSetItemStaff={onSetItemStaff}
-            onToggleTimer={onToggleTimer}
-            onResetTimer={onResetTimer}
             onMove={(direction) => onMoveItem(category.id, item.id, direction)}
             onToggleQuantityMode={() => onToggleQuantityMode(item.id)}
-            onSetItemDeadline={(deadlineId) => onSetItemDeadline(item.id, deadlineId)}
             onDelete={() => onDeleteItem(item.id)}
           />
         ))}

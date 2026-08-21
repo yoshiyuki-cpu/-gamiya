@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { DailyRecord, Deadline, Item } from '@/lib/supabase'
-import TimerDisplay from './TimerDisplay'
+import type { DailyRecord, Item } from '@/lib/supabase'
 
 function StaffSelect({
   itemId,
@@ -129,19 +128,14 @@ type Props = {
   item: Item
   record: DailyRecord | undefined
   editMode: boolean
-  showTimer: boolean
   isFirst: boolean
   isLast: boolean
   staffList: string[]
-  deadlines: Deadline[]
   onToggleCheck: (itemId: number) => void
   onSetQuantity: (itemId: number, value: string) => void
   onSetItemStaff: (itemId: number, name: string) => void
-  onToggleTimer: (itemId: number) => void
-  onResetTimer: (itemId: number) => void
   onMove: (direction: 1 | -1) => void
   onToggleQuantityMode: () => void
-  onSetItemDeadline: (deadlineId: number | null) => void
   onDelete: () => void
 }
 
@@ -149,19 +143,14 @@ export default function ItemRow({
   item,
   record,
   editMode,
-  showTimer,
   isFirst,
   isLast,
   staffList,
-  deadlines,
   onToggleCheck,
   onSetQuantity,
   onSetItemStaff,
-  onToggleTimer,
-  onResetTimer,
   onMove,
   onToggleQuantityMode,
-  onSetItemDeadline,
   onDelete,
 }: Props) {
   if (editMode) {
@@ -182,19 +171,6 @@ export default function ItemRow({
           </button>
         </div>
         <div className="item-edit-controls">
-          <select
-            className="deadline-select"
-            aria-label="締め切り"
-            value={item.deadline_id ?? ''}
-            onChange={(e) => onSetItemDeadline(e.target.value ? Number(e.target.value) : null)}
-          >
-            <option value="">時間指定なし</option>
-            {deadlines.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.label}
-              </option>
-            ))}
-          </select>
           <button
             type="button"
             className={`qty-toggle${item.has_quantity ? ' active' : ''}`}
@@ -224,34 +200,6 @@ export default function ItemRow({
       onSetItemStaff={onSetItemStaff}
     />
   )
-
-  if (showTimer) {
-    const accumulatedMs = record?.timer_accumulated_ms ?? 0
-    const startedAt = record?.timer_started_at ?? null
-    const running = !!startedAt
-    const stoppedWithElapsed = !running && accumulatedMs > 0
-
-    return (
-      <div className="item has-timer">
-        <div className="item-main">{mainField}</div>
-        <div className="timer-row">
-          <TimerDisplay accumulatedMs={accumulatedMs} startedAt={startedAt} />
-          <button
-            type="button"
-            className={`timer-btn${running ? ' active' : ''}`}
-            onClick={() => onToggleTimer(item.id)}
-          >
-            {running ? '停止' : '計測開始'}
-          </button>
-          {stoppedWithElapsed ? (
-            <button type="button" className="timer-reset" aria-label="リセット" onClick={() => onResetTimer(item.id)}>
-              ↺
-            </button>
-          ) : null}
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className={item.has_quantity ? 'item' : 'item clickable'} tabIndex={item.has_quantity ? undefined : 0}>
