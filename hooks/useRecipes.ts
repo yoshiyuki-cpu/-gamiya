@@ -4,8 +4,30 @@ import { useCallback, useEffect, useState } from 'react'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Recipe } from '@/lib/supabase'
+import { resizeImageFile } from '@/lib/image'
 
 const PHOTO_BUCKET = 'recipe-photos'
+
+export type PhotoUploadResult = { url: string } | { error: string }
+
+// Supabaseの生のエラー文は英語で原因も分かりにくいので、現場で読んで
+// 次の一手が分かる日本語にして返す。
+function describeUploadError(message: string): string {
+  const m = message.toLowerCase()
+  if (m.includes('bucket not found')) {
+    return '写真の保存先(recipe-photos)がまだ用意されていません。Supabaseの Storage での作成が必要です。'
+  }
+  if (m.includes('row-level security') || m.includes('unauthorized') || m.includes('403')) {
+    return '写真の保存が許可されていません。Supabaseの Storage の権限設定を確認してください。'
+  }
+  if (m.includes('payload too large') || m.includes('maximum allowed size')) {
+    return '写真のサイズが大きすぎて保存できませんでした。'
+  }
+  if (m.includes('failed to fetch') || m.includes('network')) {
+    return '通信が不安定で保存できませんでした。電波の良い場所でもう一度お試しください。'
+  }
+  return `写真を保存できませんでした(${message})`
+}
 
 function extensionFor(mimeType: string): string {
   if (mimeType.includes('png')) return 'png'
@@ -98,15 +120,29 @@ export function useRecipes() {
     return true
   }, [])
 
-  const uploadPhoto = useCallback(async (recipeId: number, file: File): Promise<string | null> => {
-    const ext = extensionFor(file.type)
+  const uploadPhoto = useCallback(async (recipeId: number, file: File): Promise<PhotoUploadResult> => {
+    let upload: File
+    try {
+      upload = await resizeImageFile(file)
+    } catch {
+      upload = file
+    }
+    const ext = extensionFor(upload.type)
     const path = `recipes/${recipeId}/${Date.now()}.${ext}`
-    const { error } = await supabase.storage
-      .from(PHOTO_BUCKET)
-      .upload(path, file, { upsert: false, contentType: file.type || 'image/jpeg' })
-    if (error) return null
-    const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path)
-    return data.publicUrl
+    try {
+      const { error } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(path, upload, { upsert: false, contentType: upload.type || 'image/jpeg' })
+      if (error) {
+        console.error('recipe photo upload failed', error)
+        return { error: describeUploadError(error.message) }
+      }
+      const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path)
+      return { url: data.publicUrl }
+    } catch (err) {
+      console.error('recipe photo upload threw', err)
+      return { error: describeUploadError(err instanceof Error ? err.message : String(err)) }
+    }
   }, [])
 
   return { recipes, loading, addRecipe, updateRecipe, deleteRecipe, uploadPhoto }

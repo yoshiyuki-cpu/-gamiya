@@ -922,9 +922,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
   width:100%; max-height:220px; object-fit:cover;
   border-radius:12px; border:1px solid var(--line);
 }
-.recipe-photo-input{
-  font-size:12px; color: var(--muted);
+.recipe-photo-actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.recipe-photo-btn{
+  background: var(--ember);
+  border:none; color:#fff2e6;
+  border-radius:10px; padding:10px 18px;
+  font-size:13px; font-weight:700; cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
 }
+.recipe-photo-btn:hover{ background: var(--ember-glow); }
+.recipe-photo-btn:disabled{ opacity:0.5; cursor:default; }
+.recipe-photo-btn:disabled:hover{ background: var(--ember); }
+.recipe-photo-remove-btn:disabled{ opacity:0.5; cursor:default; }
 .recipe-photo-remove-btn{
   align-self:flex-start;
   background:none; border:1px solid var(--line); color: var(--danger);
