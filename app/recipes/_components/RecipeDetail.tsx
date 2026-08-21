@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import type { Recipe } from '@/lib/supabase'
+import type { PhotoUploadResult } from '@/hooks/useRecipes'
 
 export default function RecipeDetail({
   recipe,
@@ -14,7 +15,7 @@ export default function RecipeDetail({
   onBack: () => void
   onUpdate: (patch: Partial<Recipe>) => void
   onDelete: () => void
-  onUploadPhoto: (file: File) => Promise<string | null>
+  onUploadPhoto: (file: File) => Promise<PhotoUploadResult>
 }) {
   const [name, setName] = useState(recipe.name)
   const [prepTime, setPrepTime] = useState(recipe.prep_time ?? '')
@@ -22,6 +23,7 @@ export default function RecipeDetail({
   const [steps, setSteps] = useState(recipe.steps ?? '')
   const [notes, setNotes] = useState(recipe.notes ?? '')
   const [uploading, setUploading] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -47,28 +49,48 @@ export default function RecipeDetail({
         onBlur={() => onUpdate({ prep_time: prepTime.trim() || null })}
       />
 
-      {recipe.photo_url ? (
-        <>
-          <img className="recipe-photo" src={recipe.photo_url} alt={recipe.name} />
-          <button type="button" className="recipe-photo-remove-btn" onClick={() => onUpdate({ photo_url: null })}>
+      <label className="meeting-field-label">写真</label>
+      {recipe.photo_url ? <img className="recipe-photo" src={recipe.photo_url} alt={recipe.name} /> : null}
+      <div className="recipe-photo-actions">
+        <button
+          type="button"
+          className="recipe-photo-btn"
+          disabled={uploading}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {uploading ? '保存中…' : recipe.photo_url ? '写真を撮り直す' : '写真を撮る・選ぶ'}
+        </button>
+        {recipe.photo_url ? (
+          <button
+            type="button"
+            className="recipe-photo-remove-btn"
+            disabled={uploading}
+            onClick={() => {
+              setPhotoError(null)
+              onUpdate({ photo_url: null })
+            }}
+          >
             写真を削除
           </button>
-        </>
-      ) : null}
-      {uploading ? <div className="meeting-processing">写真をアップロード中…</div> : null}
+        ) : null}
+      </div>
+      {photoError ? <div className="recorder-error">{photoError}</div> : null}
       <input
         ref={fileInputRef}
         className="recipe-photo-input"
         type="file"
         accept="image/*"
+        hidden
         onChange={async (e) => {
           const file = e.target.files?.[0]
-          if (!file) return
-          setUploading(true)
-          const url = await onUploadPhoto(file)
-          setUploading(false)
-          if (url) onUpdate({ photo_url: url })
           if (fileInputRef.current) fileInputRef.current.value = ''
+          if (!file) return
+          setPhotoError(null)
+          setUploading(true)
+          const result = await onUploadPhoto(file)
+          setUploading(false)
+          if ('url' in result) onUpdate({ photo_url: result.url })
+          else setPhotoError(result.error)
         }}
       />
 
