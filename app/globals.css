@@ -532,6 +532,60 @@ body{
 .tc-btn-break:hover:not(:disabled){ border-color: var(--gold); }
 .tc-btn-out:hover:not(:disabled){ border-color: var(--danger); color: var(--danger); }
 
+/* Tab toggle (勤怠画面の「打刻 / 管理・書き出し」で使用) */
+.view-toggle{
+  display:flex; gap:8px;
+  margin-bottom:14px;
+}
+.view-toggle-btn{
+  flex:1;
+  background: var(--surface);
+  border:1px solid var(--line);
+  color: var(--muted);
+  font-size:12.5px; font-weight:700;
+  padding: 9px 0;
+  border-radius: 10px;
+  cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+}
+.view-toggle-btn:hover{ border-color: var(--gold); }
+.view-toggle-btn.active{ background: var(--ember); color:#fff2e6; border-color: var(--ember-glow); }
+
+/* Timecard: staff management */
+.staff-row{
+  display:flex; align-items:center; gap:10px;
+  padding: 11px 12px;
+  border-bottom:1px solid var(--line);
+}
+.staff-row:last-child{ border-bottom:none; }
+.staff-row-name{ flex:1; min-width:0; font-size:14.5px; color: var(--cream); }
+.staff-rename-btn{
+  flex-shrink:0;
+  border:1px solid var(--line); background: var(--surface-2);
+  color: var(--gold); border-radius:20px;
+  padding:6px 13px; font-size:11.5px; font-weight:700; cursor:pointer;
+  white-space:nowrap; font-family:'Noto Sans JP', sans-serif;
+}
+.staff-rename-btn:hover{ border-color: var(--gold); }
+.staff-edit-row{
+  display:flex; flex-direction:column; gap:8px;
+  padding: 11px 12px;
+  border-bottom:1px solid var(--line);
+}
+.staff-edit-row:last-child{ border-bottom:none; }
+.staff-edit-actions{ display:flex; gap:8px; }
+.staff-cancel-btn{
+  border:1px solid var(--line); background:none; color: var(--muted);
+  border-radius:10px; padding:10px 16px; font-size:13px; cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+}
+.staff-cancel-btn:hover{ border-color: var(--muted); }
+.staff-message{
+  font-size:12.5px; color: var(--gold);
+  background: rgba(201,162,39,0.12);
+  border-radius:8px; padding:8px 12px;
+}
+
 /* Timecard: month admin */
 .tc-month-nav{ display:flex; align-items:center; justify-content:center; gap:16px; }
 .tc-month-btn{

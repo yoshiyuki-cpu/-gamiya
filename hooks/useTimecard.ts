@@ -14,6 +14,12 @@ export type StaffRow = {
   state: StaffState
 }
 
+// 担当者名は文字列のまま各テーブルに入っている。名前を直すときは
+// ここに挙げた全部を付け替えないと、過去の記録が古い名前のまま取り残される。
+const STAFF_NAME_TABLES = ['daily_records', 'time_entries', 'wall_orders', 'x_posts'] as const
+
+export type RenameResult = { ok: true; merged: boolean } | { ok: false; error: string }
+
 async function fetchBreaksFor(entries: TimeEntry[]): Promise<TimeBreak[]> {
   if (entries.length === 0) return []
   const { data } = await supabase
@@ -148,7 +154,77 @@ export function useTimecard() {
     [reload],
   )
 
-  return { loading, busy, workDate, rows, clockIn, clockOut, startBreak, endBreak, addStaff }
+  /** その名前で残っている記録の件数。削除してよいか判断するために使う。 */
+  const countStaffRecords = useCallback(async (name: string): Promise<number> => {
+    const counts = await Promise.all(
+      STAFF_NAME_TABLES.map(async (table) => {
+        const { count } = await supabase.from(table).select('*', { count: 'exact', head: true }).eq('staff_name', name)
+        return count ?? 0
+      }),
+    )
+    return counts.reduce((a, b) => a + b, 0)
+  }, [])
+
+  /**
+   * 名前を直す。過去の記録も新しい名前に付け替えるので、勤怠の集計が
+   * 2つの名前に割れることがない。
+   * 直した先が既にいる場合は、その人に統合する(打ち間違いで二重登録した場合)。
+   */
+  const renameStaff = useCallback(
+    async (oldName: string, newName: string): Promise<RenameResult> => {
+      const trimmed = newName.trim()
+      if (!trimmed) return { ok: false, error: '名前を入力してください。' }
+      if (trimmed === oldName) return { ok: true, merged: false }
+
+      const { data: existing } = await supabase.from('staff_names').select('name').eq('name', trimmed).maybeSingle()
+      const merged = !!existing
+
+      for (const table of STAFF_NAME_TABLES) {
+        const { error } = await supabase.from(table).update({ staff_name: trimmed }).eq('staff_name', oldName)
+        if (error) {
+          console.error('renameStaff failed', table, error)
+          return { ok: false, error: `記録の付け替えに失敗しました(${error.message})` }
+        }
+      }
+
+      // 統合のときは古い行を消す。そうでなければ名前だけ書き換える。
+      const { error } = merged
+        ? await supabase.from('staff_names').delete().eq('name', oldName)
+        : await supabase.from('staff_names').update({ name: trimmed }).eq('name', oldName)
+      if (error) {
+        console.error('renameStaff failed on staff_names', error)
+        return { ok: false, error: `名前の変更に失敗しました(${error.message})` }
+      }
+
+      await reload()
+      return { ok: true, merged }
+    },
+    [reload],
+  )
+
+  /** 一覧から消すだけ。過去の記録はその名前のまま残る。 */
+  const deleteStaff = useCallback(
+    async (name: string) => {
+      await supabase.from('staff_names').delete().eq('name', name)
+      await reload()
+    },
+    [reload],
+  )
+
+  return {
+    loading,
+    busy,
+    workDate,
+    rows,
+    clockIn,
+    clockOut,
+    startBreak,
+    endBreak,
+    addStaff,
+    renameStaff,
+    deleteStaff,
+    countStaffRecords,
+  }
 }
 
 export type MonthEntry = { entry: TimeEntry; breaks: TimeBreak[] }
