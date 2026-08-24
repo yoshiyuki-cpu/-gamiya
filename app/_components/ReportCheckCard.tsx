@@ -41,7 +41,7 @@ export default function ReportCheckCard() {
         {done ? (
           <>
             <div className="x-posted-note">
-              本日は対応済みです{todayCheck?.staff_name ? `(${todayCheck.staff_name})` : ''}。15時のLINEリマインドは飛びません。
+              本日は対応済みです{todayCheck?.staff_name ? `(${todayCheck.staff_name})` : ''}。16時のLINEリマインドは飛びません。
             </div>
             <div className="history-text">
               社長への報告: {todayCheck?.president_note ? todayCheck.president_note : '特になし'}
