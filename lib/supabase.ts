@@ -93,6 +93,17 @@ export type XPost = {
   created_at: string
 }
 
+// 行が存在する = その営業日の朝に「前日分の報告業務」を済ませた、という意味。
+// president_note は社長への報告内容。「特になし」なら null。
+export type ReportCheck = {
+  id: number
+  check_date: string
+  staff_name: string | null
+  president_note: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type DailyReport = {
   id: number
   report_date: string
