@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/notify-report-check",
+      "schedule": "0 6 * * *"
+    },
+    {
       "path": "/api/notify-x-post",
       "schedule": "30 8 * * *"
     }
