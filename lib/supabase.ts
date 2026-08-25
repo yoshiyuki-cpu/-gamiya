@@ -60,6 +60,22 @@ export type TimeBreak = {
   created_at: string
 }
 
+// 時間は「17:00から15分刻みで何コマ目か」で持つ。
+// start_slot 0 = 17:00、duration_slots 6 = 90分。
+export type Reservation = {
+  id: number
+  reserve_date: string
+  seat: string
+  start_slot: number
+  duration_slots: number
+  name: string | null
+  party_size: number | null
+  note: string | null
+  is_walk_in: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type StaffName = {
   id: number
   name: string
