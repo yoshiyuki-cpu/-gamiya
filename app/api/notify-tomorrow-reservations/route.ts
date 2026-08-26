@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { appUrl, broadcastLine, jstBusinessDayKey, rejectIfNotCron } from '@/lib/lineNotify'
+import { appUrl, broadcastLine, jstBusinessDayKey, KEEP_REMAINING, rejectIfNotCron } from '@/lib/lineNotify'
 import { buildTomorrowMessage, nextDay } from '@/lib/reservationNotify'
 import type { Reservation } from '@/lib/supabase'
 
@@ -29,9 +29,15 @@ async function handle(req: NextRequest) {
   }
 
   const list = (data ?? []) as Reservation[]
-  const result = await broadcastLine(buildTomorrowMessage(target, list, appUrl()))
+  const result = await broadcastLine(buildTomorrowMessage(target, list, appUrl()), {
+    keepRemaining: KEEP_REMAINING.tomorrowReservations,
+  })
   if (!result.ok) {
     return NextResponse.json({ error: result.message }, { status: result.status })
+  }
+
+  if (!result.sent) {
+    return NextResponse.json({ notified: false, reason: 'quota', remaining: result.remaining })
   }
 
   return NextResponse.json({ notified: true, date: target, count: list.length })

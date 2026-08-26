@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { appUrl, broadcastLine, jstBusinessDayKey, rejectIfNotCron } from '@/lib/lineNotify'
+import { appUrl, broadcastLine, jstBusinessDayKey, KEEP_REMAINING, rejectIfNotCron } from '@/lib/lineNotify'
 
 // Vercel Cron から毎日呼ばれる。まだ今日のX投稿が記録されていなければ、
 // LINE公式アカウントの友だち全員(= 登録したスタッフ)にリマインドを送る。
@@ -35,9 +35,13 @@ async function handle(req: NextRequest) {
     '投稿できたら、アプリの「日報」画面で\n「投稿した」を押してください。' +
     (link ? `\n${link}/reports` : '')
 
-  const result = await broadcastLine(text)
+  const result = await broadcastLine(text, { keepRemaining: KEEP_REMAINING.xPost })
   if (!result.ok) {
     return NextResponse.json({ error: result.message }, { status: result.status })
+  }
+
+  if (!result.sent) {
+    return NextResponse.json({ notified: false, reason: 'quota', remaining: result.remaining })
   }
 
   return NextResponse.json({ notified: true, postDate })
