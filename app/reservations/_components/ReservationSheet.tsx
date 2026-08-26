@@ -71,7 +71,7 @@ export default function ReservationSheet({
         <div className="rv-sheet-body">
           {error ? <div className="recorder-error">{error}</div> : null}
 
-          <label className="satisfaction-label">お席</label>
+          <label className="satisfaction-label">卓(1組ぶん)</label>
           <div className="rv-seat-picker">
             {SEATS.map((s) => (
               <button

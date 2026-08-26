@@ -46,7 +46,7 @@ export default function ReservationsPage() {
             <div className="eyebrow">GAMIYA</div>
             <h1 className="title">予約表</h1>
             <div className="subtitle">
-              予約{stats.booked}件 ・ 当日{stats.walkIn}件 ・ 合計{stats.guests}名
+              予約{stats.booked}組 ・ 当日{stats.walkIn}組 ・ 合計{stats.guests}名
             </div>
           </div>
         </div>
@@ -126,8 +126,10 @@ export default function ReservationsPage() {
 
       <div className="footer">
         <div className="footer-note">
-          空いているマスを押すと予約を追加できます。入っている予約は、押すと変更、
-          長押しすると別のマスへ移せます。T1〜T4がテーブル、Z5〜Z8が座敷です。
+          T1〜T4がテーブル、Z5〜Z8が座敷で、1つの列が1組ぶんの卓です。
+          同じ時間に最大8組まで入ります(人数は何名でも1組は1列です)。
+          空いているマスを押すと予約を追加、入っている予約は押すと変更、
+          長押しすると別のマスへ移せます。
         </div>
       </div>
 

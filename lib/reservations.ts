@@ -20,7 +20,8 @@ export const DURATION_CHOICES = [
 export type SeatKind = 'table' | 'zashiki'
 export type Seat = { id: string; kind: SeatKind }
 
-// テーブルは1〜4、座敷は5〜8。
+// テーブルは1〜4、座敷は5〜8。1つが1組ぶんの卓で、同時に8組まで入る。
+// 人数(party_size)は記録するだけで、卓の数は消費しない。
 export const SEATS: Seat[] = [
   { id: 'T1', kind: 'table' },
   { id: 'T2', kind: 'table' },
