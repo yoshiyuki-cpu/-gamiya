@@ -1,0 +1,58 @@
+// 翌日の予約一覧をLINEに流すときの文面。
+// ルート側に置くとテストしづらいので、純粋な組み立てだけここに切り出す。
+import { slotLabel } from './reservations'
+import type { Reservation } from './supabase'
+
+export function nextDay(dateKey: string): string {
+  const [y, m, d] = dateKey.split('-').map(Number)
+  const dt = new Date(y, m - 1, d + 1)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
+
+function dateLabel(dateKey: string): string {
+  const [, m, d] = dateKey.split('-').map(Number)
+  return `${m}月${d}日`
+}
+
+export function buildTomorrowMessage(dateKey: string, list: Reservation[], link: string | null): string {
+  const guests = list.reduce((sum, r) => sum + (r.party_size ?? 0), 0)
+  const head = `🗓 明日(${dateLabel(dateKey)})の予約\n${list.length}組 ・ 合計${guests}名\n`
+
+  // 0件の日も送る。仕込みを減らす判断材料になるため。
+  if (list.length === 0) {
+    return (
+      `${head}\n現時点で予約は入っていません。\n仕込みの量はこれを目安に調整してください。` +
+      (link ? `\n${link}/reservations` : '')
+    )
+  }
+
+  const lines = list.map((r) => {
+    const parts = [`${slotLabel(r.start_slot)} ${r.seat} ${r.name ?? '(名前なし)'}`]
+    if (r.party_size) parts.push(`${r.party_size}名`)
+    if (r.course) parts.push(r.course)
+    let line = '・' + parts.join(' ')
+    if (r.note) line += `\n　※${r.note}`
+    return line
+  })
+
+  // 備考は仕込みに直結するので、末尾にもう一度まとめて出す。
+  const notes = list.filter((r) => r.note)
+  const noteBlock =
+    notes.length > 0
+      ? '\n\n【仕込み・取り置き】\n' +
+        notes.map((r) => `・${slotLabel(r.start_slot)} ${r.name ?? r.seat} … ${r.note}`).join('\n')
+      : ''
+
+  const text = `${head}\n${lines.join('\n')}${noteBlock}` + (link ? `\n\n${link}/reservations` : '')
+  return clamp(text)
+}
+
+// LINEは1通5000文字まで。超えると送信自体が失敗して1件も届かないので、
+// 予約が多い日は末尾を切ってでも必ず送る。
+const LINE_TEXT_LIMIT = 4900
+
+function clamp(text: string): string {
+  const chars = Array.from(text)
+  if (chars.length <= LINE_TEXT_LIMIT) return text
+  return chars.slice(0, LINE_TEXT_LIMIT).join('') + '\n…(続きはアプリの予約表で確認してください)'
+}

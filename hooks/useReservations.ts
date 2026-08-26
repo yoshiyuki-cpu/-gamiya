@@ -11,6 +11,8 @@ export type ReservationDraft = {
   duration_slots: number
   name: string
   party_size: string
+  phone: string
+  course: string
   note: string
   is_walk_in: boolean
 }
@@ -90,6 +92,8 @@ export function useReservations(dateKey: string) {
           duration_slots: draft.duration_slots,
           name: draft.name.trim() || null,
           party_size: Number.isFinite(size) && size > 0 ? size : null,
+          phone: draft.phone.trim() || null,
+          course: draft.course.trim() || null,
           note: draft.note.trim() || null,
           is_walk_in: draft.is_walk_in,
         })

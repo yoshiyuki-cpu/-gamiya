@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useGuestVisits } from '@/hooks/useGuestVisits'
 import type { VisitPatch } from '@/hooks/useGuestVisits'
+import { slotLabel } from '@/lib/reservations'
 import type { GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -97,12 +98,25 @@ function VisitEditor({
 }
 
 export default function GuestsPage() {
-  const { loading, visits, totalCount, ratedCount, addVisit, updateVisit, deleteVisit } = useGuestVisits()
+  const {
+    loading,
+    visits,
+    totalCount,
+    ratedCount,
+    pendingReservations,
+    addVisit,
+    importReservation,
+    importAllReservations,
+    updateVisit,
+    deleteVisit,
+  } = useGuestVisits()
 
   const [newName, setNewName] = useState('')
   const [newTime, setNewTime] = useState('')
   const [newTable, setNewTable] = useState('')
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  // 取り込み中の二度押しを防ぐ。忙しい時間帯に連打されがちなため。
+  const [importing, setImporting] = useState(false)
 
   if (loading) {
     return (
@@ -124,6 +138,16 @@ export default function GuestsPage() {
     setNewTable('')
   }
 
+  const runImport = async (task: () => Promise<void>) => {
+    if (importing) return
+    setImporting(true)
+    try {
+      await task()
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="app">
       <div className="header">
@@ -139,6 +163,48 @@ export default function GuestsPage() {
       </div>
 
       <div className={`done-banner${allRated ? ' show' : ''}`}>✅ 本日の全組に評価がつきました!</div>
+
+      {pendingReservations.length > 0 ? (
+        <div className="category">
+          <div className="category-head">
+            <div className="badge">予</div>
+            <div>
+              <div className="category-name">本日の予約から取り込む</div>
+              <div className="category-sub">予約表に入っていて、まだ台帳にない{pendingReservations.length}組</div>
+            </div>
+          </div>
+          <div className="items">
+            {pendingReservations.map((r) => (
+              <div key={r.id} className="pending-row">
+                <span className="visit-time">{slotLabel(r.start_slot)}</span>
+                <span className="history-table">{r.seat}</span>
+                <span className="visit-name">
+                  {r.name ?? '(名前なし)'}
+                  {r.party_size ? ` ${r.party_size}名` : ''}
+                </span>
+                <button
+                  className="pending-import-btn"
+                  type="button"
+                  disabled={importing}
+                  onClick={() => runImport(() => importReservation(r))}
+                >
+                  取り込む
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="satisfaction-body">
+            <button
+              className="next-guest-btn"
+              type="button"
+              disabled={importing}
+              onClick={() => runImport(importAllReservations)}
+            >
+              {pendingReservations.length}組すべて取り込む
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="category">
         <div className="category-head">
@@ -203,6 +269,7 @@ export default function GuestsPage() {
                     <span className="unrated-chip">未評価</span>
                   )}
                   <span className="visit-name">{v.reservation_name ?? '(名前なし)'}</span>
+                  {v.reservation_id != null ? <span className="from-rv-chip">予約</span> : null}
                   {v.reservation_time ? <span className="visit-time">{v.reservation_time}</span> : null}
                   {v.table_number ? <span className="history-table">卓{v.table_number}</span> : null}
                   <span className={`category-chevron${expanded ? '' : ' collapsed'}`} aria-hidden="true">

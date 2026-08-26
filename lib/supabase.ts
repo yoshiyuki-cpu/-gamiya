@@ -70,6 +70,8 @@ export type Reservation = {
   duration_slots: number
   name: string | null
   party_size: number | null
+  phone: string | null
+  course: string | null
   note: string | null
   is_walk_in: boolean
   created_at: string
@@ -164,6 +166,8 @@ export type SatisfactionRank = 'S' | 'A' | 'B' | 'C' | 'D' | 'E'
 export type GuestSatisfactionRecord = {
   id: number
   rank: SatisfactionRank | null
+  // 予約表から取り込んだ組は、元の予約とここで紐付く。
+  reservation_id: number | null
   table_number: string | null
   reservation_name: string | null
   reservation_time: string | null
