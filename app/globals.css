@@ -579,6 +579,129 @@ body{
   font-variant-numeric: tabular-nums; padding-top:2px;
 }
 
+/* 予約表 */
+.rv-date-nav{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.rv-date-label{
+  flex:1; background: var(--surface); border:1px solid var(--line);
+  color: var(--cream); border-radius:10px; padding:9px 8px;
+  font-size:14px; font-weight:700; cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.rv-today-hint{ font-size:10px; font-weight:500; color: var(--gold); }
+.rv-moving-bar{
+  display:flex; align-items:center; gap:10px;
+  background: var(--ember); color:#fff2e6;
+  border-radius:10px; padding:10px 12px; margin-bottom:10px;
+  font-size:12.5px; font-weight:700;
+}
+.rv-cancel-move{
+  flex-shrink:0; background: rgba(0,0,0,0.22); border:none; color:#fff2e6;
+  border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+}
+.rv-error{ margin-bottom:10px; }
+
+.rv-grid-wrap{
+  background: var(--surface); border:1px solid var(--line);
+  border-radius:12px; overflow:hidden; margin-bottom:14px;
+}
+.rv-grid{ display:grid; }
+.rv-corner{ background: var(--surface-2); border-bottom:1px solid var(--line); }
+.rv-head{
+  background: var(--surface-2);
+  border-bottom:1px solid var(--line); border-left:1px solid var(--line);
+  text-align:center; padding:7px 2px;
+  font-size:11.5px; font-weight:700;
+  position:sticky; top:0; z-index:2;
+}
+.rv-head-table{ color: var(--ember-glow); }
+.rv-head-zashiki{ color: var(--gold); }
+.rv-time{
+  font-size:10px; color: var(--muted);
+  text-align:right; padding-right:5px;
+  line-height:26px;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface-2);
+}
+.rv-time-hour{ color: var(--cream); font-weight:700; }
+.rv-cell{
+  border-left:1px solid var(--line);
+  border-top:1px solid rgba(58,43,34,0.55);
+  padding:0; background:none; cursor:pointer;
+}
+.rv-cell-hour{ border-top:1px solid var(--line); }
+.rv-cell:hover{ background: rgba(255,255,255,0.04); }
+.rv-cell-target{ background: rgba(232,98,44,0.08); }
+.rv-cell-target:hover{ background: rgba(232,98,44,0.24); }
+
+.rv-block{
+  border:none; border-left:1px solid var(--line);
+  background: linear-gradient(160deg, var(--ember), #b5451f);
+  color:#fff2e6; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  padding:2px; margin:1px; border-radius:6px;
+  font-family:'Noto Sans JP', sans-serif;
+  overflow:hidden;
+  touch-action: pan-y;
+}
+.rv-block-name{ font-size:11px; font-weight:700; line-height:1.2; word-break:break-all; }
+.rv-block-size{ font-size:10px; opacity:0.9; }
+.rv-block-note{ font-size:10px; color: var(--gold); font-weight:700; }
+.rv-walkin{ background: linear-gradient(160deg, #8a6a1f, #6b4f12); }
+.rv-moving{ outline:2px dashed #fff2e6; outline-offset:-3px; opacity:0.75; }
+
+/* 予約の入力シート */
+.rv-sheet-backdrop{
+  position:fixed; inset:0; z-index:40;
+  background: rgba(0,0,0,0.6);
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.rv-sheet{
+  width:100%; max-width:480px; max-height:88vh; overflow-y:auto;
+  background: var(--surface); border:1px solid var(--line);
+  border-radius:16px 16px 0 0;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.rv-sheet-head{
+  display:flex; align-items:flex-start; gap:12px;
+  padding:16px; border-bottom:1px solid var(--line);
+  position:sticky; top:0; background: var(--surface); z-index:1;
+}
+.rv-sheet-title{ font-size:16px; font-weight:700; color: var(--cream); }
+.rv-sheet-sub{ font-size:12px; color: var(--muted); margin-top:2px; }
+.rv-sheet-close{
+  margin-left:auto; flex-shrink:0;
+  width:30px; height:30px; border-radius:50%;
+  background: var(--surface-2); border:1px solid var(--line); color: var(--muted);
+  font-size:17px; cursor:pointer; line-height:1;
+}
+.rv-sheet-body{ padding:16px; display:flex; flex-direction:column; gap:10px; }
+.rv-seat-picker{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.rv-seat-btn{
+  background: var(--surface-2); border:1px solid var(--line);
+  color: var(--cream); border-radius:8px; padding:10px 0;
+  font-size:13px; font-weight:700; cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+}
+.rv-seat-table.active{ background: var(--ember); color:#fff2e6; border-color: var(--ember-glow); }
+.rv-seat-zashiki.active{ background: var(--gold); color:#1b1310; border-color: var(--gold); }
+.rv-duration-picker{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.rv-row-2{ display:flex; gap:8px; }
+.rv-field{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.rv-field-size{ width:84px; flex:0 0 84px; }
+.rv-walkin-toggle{
+  display:flex; align-items:center; gap:8px;
+  font-size:13px; color: var(--cream); cursor:pointer;
+}
+.rv-nudge{ display:flex; gap:8px; }
+
+.rv-notes-card{ margin-bottom:14px; }
+.rv-note-row{ padding:10px 12px; border-bottom:1px solid var(--line); }
+.rv-note-row:last-child{ border-bottom:none; }
+.rv-note-top{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.rv-note-time{ flex-shrink:0; font-size:12px; color: var(--gold); font-variant-numeric: tabular-nums; }
+
 /* Timecard: staff management */
 .staff-row{
   display:flex; align-items:center; gap:10px;
