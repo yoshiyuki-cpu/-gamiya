@@ -96,18 +96,18 @@ export default function ReservationsPage() {
         />
       )}
 
-      {reservations.some((r) => r.note) ? (
+      {reservations.some((r) => r.note || r.course) ? (
         <div className="category rv-notes-card">
           <div className="category-head">
             <div className="badge">備</div>
             <div>
-              <div className="category-name">備考のある予約</div>
+              <div className="category-name">備考・コースのある予約</div>
               <div className="category-sub">仕込み・取り置きの確認用</div>
             </div>
           </div>
           <div className="items">
             {reservations
-              .filter((r) => r.note)
+              .filter((r) => r.note || r.course)
               .sort((a, b) => a.start_slot - b.start_slot)
               .map((r) => (
                 <div key={r.id} className="rv-note-row">
@@ -116,8 +116,9 @@ export default function ReservationsPage() {
                     <span className="history-table">{r.seat}</span>
                     <span className="visit-name">{r.name ?? '(名前なし)'}</span>
                     {r.party_size ? <span className="tc-times">{r.party_size}名</span> : null}
+                    {r.course ? <span className="from-rv-chip">{r.course}</span> : null}
                   </div>
-                  <div className="history-text">{r.note}</div>
+                  {r.note ? <div className="history-text">{r.note}</div> : null}
                 </div>
               ))}
           </div>
@@ -146,6 +147,8 @@ export default function ReservationsPage() {
               duration_slots: v.durationSlots,
               name: v.name,
               party_size: v.partySize,
+              phone: v.phone,
+              course: v.course,
               note: v.note,
               is_walk_in: v.isWalkIn,
             })

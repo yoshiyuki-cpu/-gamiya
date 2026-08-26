@@ -696,6 +696,13 @@ body{
 }
 .rv-nudge{ display:flex; gap:8px; }
 
+.rv-call-link{
+  font-size:12px; font-weight:700;
+  color: var(--gold);
+  text-decoration:none;
+  padding: 2px 0;
+}
+.rv-call-link:hover{ text-decoration:underline; }
 .rv-notes-card{ margin-bottom:14px; }
 .rv-note-row{ padding:10px 12px; border-bottom:1px solid var(--line); }
 .rv-note-row:last-child{ border-bottom:none; }
@@ -823,6 +830,35 @@ body{
   align-self:center;
 }
 .visit-delete-btn:hover{ text-decoration:underline; }
+
+/* Guest ratings: pull today's reservations into the ledger */
+.pending-row{
+  display:flex; align-items:center; gap:8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.pending-row:last-child{ border-bottom:none; }
+.pending-import-btn{
+  flex-shrink:0;
+  background: var(--ember);
+  border:none;
+  color:#fff2e6;
+  font-size:12px; font-weight:700;
+  padding: 7px 12px;
+  border-radius: 20px;
+  cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+}
+.pending-import-btn:hover{ background: var(--ember-glow); }
+.pending-import-btn:disabled{ opacity:0.4; cursor:default; }
+.from-rv-chip{
+  flex-shrink:0;
+  font-size:10px; font-weight:700;
+  color: var(--gold);
+  border:1px solid var(--gold);
+  padding:2px 7px; border-radius:20px;
+  white-space:nowrap;
+}
 
 /* Guest-check: table picker */
 .table-select-row{ display:flex; gap:8px; }

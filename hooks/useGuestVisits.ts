@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import type { GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
+import type { GuestSatisfactionRecord, Reservation, SatisfactionRank } from '@/lib/supabase'
 import { businessDayRange, todayKey } from '@/lib/checklist'
+import { slotLabel } from '@/lib/reservations'
 
 // Safety cap only — the list is scoped to today's business day (5am-to-5am),
 // so a busy day with 30-40 groups still shows every one.
@@ -33,6 +34,8 @@ function sortVisits(rows: GuestSatisfactionRecord[]): GuestSatisfactionRecord[] 
 export function useGuestVisits() {
   const [loading, setLoading] = useState(true)
   const [visits, setVisits] = useState<GuestSatisfactionRecord[]>([])
+  // 予約表から取り込むための、本日の予約。
+  const [todayReservations, setTodayReservations] = useState<Reservation[]>([])
 
   const applyVisit = useCallback((row: GuestSatisfactionRecord) => {
     setVisits((prev) => {
@@ -47,14 +50,18 @@ export function useGuestVisits() {
     let cancelled = false
     ;(async () => {
       const { start, end } = businessDayRange(todayKey())
-      const { data } = await supabase
-        .from('guest_satisfaction_records')
-        .select('*')
-        .gte('created_at', start)
-        .lt('created_at', end)
-        .limit(VISITS_SAFETY_LIMIT)
+      const [{ data }, { data: reservationData }] = await Promise.all([
+        supabase
+          .from('guest_satisfaction_records')
+          .select('*')
+          .gte('created_at', start)
+          .lt('created_at', end)
+          .limit(VISITS_SAFETY_LIMIT),
+        supabase.from('reservations').select('*').eq('reserve_date', todayKey()).order('start_slot'),
+      ])
       if (cancelled) return
       setVisits(sortVisits((data ?? []) as GuestSatisfactionRecord[]))
+      setTodayReservations((reservationData ?? []) as Reservation[])
       setLoading(false)
     })()
     return () => {
@@ -103,6 +110,31 @@ export function useGuestVisits() {
     [applyVisit],
   )
 
+  /** 予約表の1組を、評価台帳に取り込む。二重入力をなくすのが目的。 */
+  const importReservation = useCallback(
+    async (reservation: Reservation) => {
+      const row = {
+        rank: null,
+        reservation_id: reservation.id,
+        reservation_name: reservation.name,
+        reservation_time: slotLabel(reservation.start_slot),
+        table_number: reservation.seat,
+        visit_reason: null,
+        impression: null,
+      }
+      const { data } = await supabase.from('guest_satisfaction_records').insert(row).select().single()
+      if (data) applyVisit(data as GuestSatisfactionRecord)
+    },
+    [applyVisit],
+  )
+
+  /** まとめて取り込む。開店前に一気に並べておきたいとき用。 */
+  const importAllReservations = useCallback(async () => {
+    const imported = new Set(visits.map((v) => v.reservation_id).filter((id): id is number => id != null))
+    const targets = todayReservations.filter((r) => !imported.has(r.id))
+    for (const r of targets) await importReservation(r)
+  }, [visits, todayReservations, importReservation])
+
   const updateVisit = useCallback(
     async (id: number, patch: VisitPatch) => {
       setVisits((prev) => sortVisits(prev.map((v) => (v.id === id ? { ...v, ...patch } : v))))
@@ -120,12 +152,21 @@ export function useGuestVisits() {
   const totalCount = visits.length
   const ratedCount = visits.filter((v) => v.rank != null).length
 
+  // まだ台帳に入っていない本日の予約。
+  const pendingReservations = useMemo(() => {
+    const imported = new Set(visits.map((v) => v.reservation_id).filter((id): id is number => id != null))
+    return todayReservations.filter((r) => !imported.has(r.id))
+  }, [visits, todayReservations])
+
   return {
     loading,
     visits,
     totalCount,
     ratedCount,
+    pendingReservations,
     addVisit,
+    importReservation,
+    importAllReservations,
     updateVisit,
     deleteVisit,
   }

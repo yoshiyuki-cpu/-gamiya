@@ -22,7 +22,17 @@ export default function ReservationSheet({
   saving: boolean
   error: string | null
   onClose: () => void
-  onCreate: (values: { seat: string; startSlot: number; durationSlots: number; name: string; partySize: string; note: string; isWalkIn: boolean }) => void
+  onCreate: (values: {
+    seat: string
+    startSlot: number
+    durationSlots: number
+    name: string
+    partySize: string
+    phone: string
+    course: string
+    note: string
+    isWalkIn: boolean
+  }) => void
   onUpdate: (id: number, patch: Partial<Reservation>) => void
   onDelete: (id: number) => void
   onNudge: (id: number, deltaSlots: number) => void
@@ -34,12 +44,14 @@ export default function ReservationSheet({
   const [durationSlots, setDurationSlots] = useState(existing?.duration_slots ?? 6)
   const [name, setName] = useState(existing?.name ?? '')
   const [partySize, setPartySize] = useState(existing?.party_size ? String(existing.party_size) : '')
+  const [phone, setPhone] = useState(existing?.phone ?? '')
+  const [course, setCourse] = useState(existing?.course ?? '')
   const [note, setNote] = useState(existing?.note ?? '')
   const [isWalkIn, setIsWalkIn] = useState(existing?.is_walk_in ?? false)
 
   const save = () => {
     if (target.mode === 'create') {
-      onCreate({ seat, startSlot, durationSlots, name, partySize, note, isWalkIn })
+      onCreate({ seat, startSlot, durationSlots, name, partySize, phone, course, note, isWalkIn })
     } else {
       const size = Number(partySize)
       onUpdate(target.reservation.id, {
@@ -47,6 +59,8 @@ export default function ReservationSheet({
         duration_slots: durationSlots,
         name: name.trim() || null,
         party_size: Number.isFinite(size) && size > 0 ? size : null,
+        phone: phone.trim() || null,
+        course: course.trim() || null,
         note: note.trim() || null,
         is_walk_in: isWalkIn,
       })
@@ -125,6 +139,41 @@ export default function ReservationSheet({
                 placeholder="4"
                 value={partySize}
                 onChange={(e) => setPartySize(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="rv-row-2">
+            <div className="rv-field">
+              <label className="satisfaction-label" htmlFor="rvPhone">
+                電話番号
+              </label>
+              <input
+                id="rvPhone"
+                className="satisfaction-input"
+                type="tel"
+                inputMode="tel"
+                placeholder="090-1234-5678"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              {/* 確認の電話をその場でかけられるように。 */}
+              {phone.trim() ? (
+                <a className="rv-call-link" href={`tel:${phone.replace(/[^0-9+]/g, '')}`}>
+                  📞 この番号にかける
+                </a>
+              ) : null}
+            </div>
+            <div className="rv-field">
+              <label className="satisfaction-label" htmlFor="rvCourse">
+                コース
+              </label>
+              <input
+                id="rvCourse"
+                className="satisfaction-input"
+                placeholder="例) 上コース"
+                value={course}
+                onChange={(e) => setCourse(e.target.value)}
               />
             </div>
           </div>
