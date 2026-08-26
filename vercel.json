@@ -5,6 +5,10 @@
       "schedule": "0 7 * * *"
     },
     {
+      "path": "/api/notify-morning-meeting",
+      "schedule": "50 7 * * *"
+    },
+    {
       "path": "/api/notify-x-post",
       "schedule": "30 8 * * *"
     },
