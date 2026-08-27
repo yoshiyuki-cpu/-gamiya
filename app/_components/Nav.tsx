@@ -20,6 +20,10 @@ export default function Nav() {
         <span className="nav-icon" aria-hidden="true">📅</span>
         <span className="nav-label">予約表</span>
       </Link>
+      <Link href="/shifts" className={pathname?.startsWith('/shifts') ? 'active' : ''}>
+        <span className="nav-icon" aria-hidden="true">🗓</span>
+        <span className="nav-label">シフト</span>
+      </Link>
       <Link href="/timecard" className={pathname?.startsWith('/timecard') ? 'active' : ''}>
         <span className="nav-icon" aria-hidden="true">⏱</span>
         <span className="nav-label">勤怠</span>

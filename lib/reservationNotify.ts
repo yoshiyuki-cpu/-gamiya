@@ -43,16 +43,6 @@ export function buildTomorrowMessage(dateKey: string, list: Reservation[], link:
         notes.map((r) => `・${slotLabel(r.start_slot)} ${r.name ?? r.seat} … ${r.note}`).join('\n')
       : ''
 
-  const text = `${head}\n${lines.join('\n')}${noteBlock}` + (link ? `\n\n${link}/reservations` : '')
-  return clamp(text)
-}
-
-// LINEは1通5000文字まで。超えると送信自体が失敗して1件も届かないので、
-// 予約が多い日は末尾を切ってでも必ず送る。
-const LINE_TEXT_LIMIT = 4900
-
-function clamp(text: string): string {
-  const chars = Array.from(text)
-  if (chars.length <= LINE_TEXT_LIMIT) return text
-  return chars.slice(0, LINE_TEXT_LIMIT).join('') + '\n…(続きはアプリの予約表で確認してください)'
+  // 長すぎる日の切り詰めは broadcastLine 側でまとめて行う。
+  return `${head}\n${lines.join('\n')}${noteBlock}` + (link ? `\n\n${link}/reservations` : '')
 }
