@@ -82,7 +82,11 @@ export type BroadcastResult =
  */
 export const KEEP_REMAINING = {
   reportCheck: 0,
+  // シフトは締め切りに間に合わないと組めなくなるので、日々の声かけより優先する。
+  shiftReminder: 6,
+  shiftReport: 9,
   xPost: 15,
+  shiftHelpWanted: 21,
   tomorrowReservations: 30,
   morningMeeting: 45,
 } as const
@@ -95,6 +99,16 @@ export type BroadcastOptions = {
    * 優先度の低い通知に大きめの数を持たせて先に落とす。
    */
   keepRemaining?: number
+}
+
+// LINEは1通5000文字まで。超えると送信自体が失敗して1件も届かないので、
+// 長い日は末尾を切ってでも必ず送る。絵文字が割れないよう文字単位で数える。
+const LINE_TEXT_LIMIT = 4900
+
+export function clampForLine(text: string): string {
+  const chars = Array.from(text)
+  if (chars.length <= LINE_TEXT_LIMIT) return text
+  return chars.slice(0, LINE_TEXT_LIMIT).join('') + '\n…(続きはアプリで確認してください)'
 }
 
 /** LINE公式アカウントの友だち全員(= 登録したスタッフ)に送る。 */
@@ -117,7 +131,7 @@ export async function broadcastLine(text: string, options: BroadcastOptions = {}
   const res = await fetch(LINE_BROADCAST_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ messages: [{ type: 'text', text }] }),
+    body: JSON.stringify({ messages: [{ type: 'text', text: clampForLine(text) }] }),
   })
 
   if (!res.ok) {

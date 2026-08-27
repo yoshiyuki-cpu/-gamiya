@@ -81,7 +81,63 @@ export type Reservation = {
 export type StaffName = {
   id: number
   name: string
+  // シフトの区分。タイムカードだけを使っていた頃の行にも既定値が入る。
+  role: 'staff' | 'parttime'
+  position: 'hall' | 'kitchen' | 'both'
+  active: boolean
   created_at: string
+}
+
+export type ShiftRequirement = {
+  weekday: number
+  total_needed: number
+  hall_needed: number
+  kitchen_needed: number
+  staff_needed: number
+  updated_at: string
+}
+
+export type ShiftRequirementOverride = {
+  work_date: string
+  total_needed: number
+  hall_needed: number
+  kitchen_needed: number
+  staff_needed: number
+  note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ShiftRequest = {
+  id: number
+  staff_name: string
+  work_date: string
+  kind: 'off' | 'want'
+  note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ShiftAssignment = {
+  id: number
+  staff_name: string
+  work_date: string
+  created_at: string
+  updated_at: string
+}
+
+export type ShiftSubmission = {
+  id: number
+  staff_name: string
+  period_key: string
+  submitted_at: string
+}
+
+export type ShiftSettings = {
+  id: number
+  first_half_deadline_day: number
+  second_half_deadline_day: number
+  updated_at: string
 }
 
 export type WallMenuItem = {
