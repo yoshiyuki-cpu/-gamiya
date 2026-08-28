@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useGuestVisits } from '@/hooks/useGuestVisits'
 import type { VisitPatch } from '@/hooks/useGuestVisits'
-import { slotLabel } from '@/lib/reservations'
+import { seatsLabel, slotLabel } from '@/lib/reservations'
 import type { GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -177,7 +177,7 @@ export default function GuestsPage() {
             {pendingReservations.map((r) => (
               <div key={r.id} className="pending-row">
                 <span className="visit-time">{slotLabel(r.start_slot)}</span>
-                <span className="history-table">{r.seat}</span>
+                <span className="history-table">{seatsLabel(r.seats)}</span>
                 <span className="visit-name">
                   {r.name ?? '(名前なし)'}
                   {r.party_size ? ` ${r.party_size}名` : ''}

@@ -65,14 +65,20 @@ export type TimeBreak = {
 export type Reservation = {
   id: number
   reserve_date: string
-  seat: string
+  // 1組が複数の卓を使うことがある(座敷を繋ぐ大人数)。
+  seats: string[]
   start_slot: number
   duration_slots: number
   name: string | null
   party_size: number | null
+  child_size: number | null
   phone: string | null
   course: string | null
   note: string | null
+  source: string | null
+  status: 'booked' | 'seated' | 'done' | 'cancelled' | 'noshow'
+  seated_at: string | null
+  left_at: string | null
   is_walk_in: boolean
   created_at: string
   updated_at: string

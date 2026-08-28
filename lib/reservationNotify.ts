@@ -1,6 +1,6 @@
 // 翌日の予約一覧をLINEに流すときの文面。
 // ルート側に置くとテストしづらいので、純粋な組み立てだけここに切り出す。
-import { slotLabel } from './reservations'
+import { countsAsGuest, seatsLabel, slotLabel } from './reservations'
 import type { Reservation } from './supabase'
 
 export function nextDay(dateKey: string): string {
@@ -14,9 +14,15 @@ function dateLabel(dateKey: string): string {
   return `${m}月${d}日`
 }
 
-export function buildTomorrowMessage(dateKey: string, list: Reservation[], link: string | null): string {
+export function buildTomorrowMessage(dateKey: string, all: Reservation[], link: string | null): string {
+  // キャンセルと無断キャンセルは仕込みに数えない。
+  const list = all.filter((r) => countsAsGuest(r.status))
   const guests = list.reduce((sum, r) => sum + (r.party_size ?? 0), 0)
-  const head = `🗓 明日(${dateLabel(dateKey)})の予約\n${list.length}組 ・ 合計${guests}名\n`
+  const children = list.reduce((sum, r) => sum + (r.child_size ?? 0), 0)
+  const head =
+    `🗓 明日(${dateLabel(dateKey)})の予約\n${list.length}組 ・ 合計${guests}名` +
+    (children > 0 ? `(うち子供${children}名)` : '') +
+    '\n'
 
   // 0件の日も送る。仕込みを減らす判断材料になるため。
   if (list.length === 0) {
@@ -27,7 +33,7 @@ export function buildTomorrowMessage(dateKey: string, list: Reservation[], link:
   }
 
   const lines = list.map((r) => {
-    const parts = [`${slotLabel(r.start_slot)} ${r.seat} ${r.name ?? '(名前なし)'}`]
+    const parts = [`${slotLabel(r.start_slot)} ${seatsLabel(r.seats)} ${r.name ?? '(名前なし)'}`]
     if (r.party_size) parts.push(`${r.party_size}名`)
     if (r.course) parts.push(r.course)
     let line = '・' + parts.join(' ')
@@ -40,7 +46,7 @@ export function buildTomorrowMessage(dateKey: string, list: Reservation[], link:
   const noteBlock =
     notes.length > 0
       ? '\n\n【仕込み・取り置き】\n' +
-        notes.map((r) => `・${slotLabel(r.start_slot)} ${r.name ?? r.seat} … ${r.note}`).join('\n')
+        notes.map((r) => `・${slotLabel(r.start_slot)} ${r.name ?? seatsLabel(r.seats)} … ${r.note}`).join('\n')
       : ''
 
   // 長すぎる日の切り詰めは broadcastLine 側でまとめて行う。
