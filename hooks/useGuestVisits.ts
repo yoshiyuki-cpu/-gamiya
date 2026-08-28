@@ -5,7 +5,7 @@ import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { GuestSatisfactionRecord, Reservation, SatisfactionRank } from '@/lib/supabase'
 import { businessDayRange, todayKey } from '@/lib/checklist'
-import { slotLabel } from '@/lib/reservations'
+import { seatsLabel, slotLabel } from '@/lib/reservations'
 
 // Safety cap only — the list is scoped to today's business day (5am-to-5am),
 // so a busy day with 30-40 groups still shows every one.
@@ -118,7 +118,7 @@ export function useGuestVisits() {
         reservation_id: reservation.id,
         reservation_name: reservation.name,
         reservation_time: slotLabel(reservation.start_slot),
-        table_number: reservation.seat,
+        table_number: seatsLabel(reservation.seats),
         visit_reason: null,
         impression: null,
       }
