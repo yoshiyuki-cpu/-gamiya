@@ -92,13 +92,6 @@ body{
 .staff-row input::placeholder{ color: var(--muted); }
 .staff-row input:focus{ outline:2px solid var(--ember-glow); outline-offset:1px; }
 
-.date-row{
-  display:flex; justify-content:space-between; align-items:center;
-  font-size:13px; color: var(--muted); margin-bottom:14px;
-  position:relative; z-index:1;
-}
-.date-row strong{ color: var(--cream); font-weight:500; }
-
 .progress-wrap{ position:relative; z-index:1; }
 .coal-strip{
   display:flex; flex-wrap:wrap; gap:5px;
@@ -442,14 +435,6 @@ body{
 .satisfaction-submit{ width:100%; }
 
 /* Guest-check: satisfaction history */
-.history-row{
-  padding: 10px 12px;
-  border-radius:10px;
-  border-bottom: 1px solid var(--line);
-}
-.history-row:last-child{ border-bottom:none; }
-.history-row-top{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
-.history-time{ font-size:11px; color: var(--muted); }
 .history-table{
   flex-shrink:0;
   font-size:11px; font-weight:700; color: var(--cream);
@@ -1019,7 +1004,6 @@ body{
 }
 .sh-chip-short{ background:#8c2f22; color:#ffe8e2; }
 .sh-chip-over{ background: var(--gold); color:#1b1310; }
-.sh-chip-warn{ border:1px dashed var(--gold); color: var(--gold); }
 .sh-day-short{ background: rgba(140,47,34,0.12); }
 .sh-day-over{ background: rgba(214,168,74,0.08); }
 .sh-day-names{ padding:0 12px 10px 88px; font-size:12px; color: var(--muted); line-height:1.6; }
@@ -1113,18 +1097,6 @@ body{
   font-family:'Noto Sans JP', sans-serif;
 }
 .table-chip:hover{ border-color: var(--gold); }
-.table-switch-btn{
-  background:none;
-  border:none;
-  color: var(--gold);
-  font-size:12px; font-weight:700;
-  padding: 0;
-  margin-top:10px;
-  cursor:pointer;
-  position:relative; z-index:1;
-  font-family:'Noto Sans JP', sans-serif;
-}
-.table-switch-btn:hover{ text-decoration: underline; }
 
 .done-banner{
   display:none;

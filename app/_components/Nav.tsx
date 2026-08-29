@@ -12,7 +12,7 @@ export default function Nav() {
         <span className="nav-icon" aria-hidden="true">✓</span>
         <span className="nav-label">チェック</span>
       </Link>
-      <Link href="/guests" className={pathname?.startsWith('/guests') || pathname?.startsWith('/guest-check') ? 'active' : ''}>
+      <Link href="/guests" className={pathname?.startsWith('/guests') ? 'active' : ''}>
         <span className="nav-icon" aria-hidden="true">⭐</span>
         <span className="nav-label">お客様評価</span>
       </Link>
