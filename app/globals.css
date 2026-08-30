@@ -941,11 +941,17 @@ body{
   border:1px solid var(--line);
   color: var(--muted);
   font-size:12px; font-weight:700;
+  /* 指で押す前提。44px を下回ると、営業中の手では押し損ねる。 */
+  min-height:44px;
   padding:8px 4px;
   border-radius:10px;
   cursor:pointer;
   font-family:'Noto Sans JP', sans-serif;
+  -webkit-tap-highlight-color: rgba(255,255,255,0.12);
+  touch-action: manipulation;
 }
+/* 押したことが指に返るように。反応が見えないと二度押しされる。 */
+.sh-pick:active{ transform: scale(0.97); }
 .sh-pick.active{ background: var(--surface-3, #2a211d); color: var(--cream); border-color: var(--muted); }
 .sh-pick-off.active{ background:#8c2f22; color:#ffe8e2; border-color:#c04a34; }
 .sh-pick-want.active{ background: var(--gold); color:#1b1310; border-color: var(--gold); }

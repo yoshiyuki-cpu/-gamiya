@@ -11,6 +11,10 @@ export const dynamic = 'force-dynamic'
 
 const NAME_KEY = 'gamiya-shift-name'
 
+// これを過ぎても返事がなければ、押せないまま固まらせずに諦める。
+// 電波の悪い店内で1回詰まると、以後どのボタンも押せなくなるため。
+const SAVE_TIMEOUT_MS = 12000
+
 export default function ShiftsPage() {
   // 既定は「次に組む期間」。今の期間はもう動かせないことが多いため。
   const [period, setPeriod] = useState<ShiftPeriod>(() => nextPeriod(periodOf(todayKey())))
@@ -24,6 +28,7 @@ export default function ShiftsPage() {
     }
   })
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const shifts = useShifts(period)
 
@@ -36,11 +41,25 @@ export default function ShiftsPage() {
     }
   }
 
-  const run = async (task: () => Promise<unknown>) => {
+  // 保存に失敗したら必ず画面に出す。黙って失敗すると、現場では
+  // 「ボタンが押せない」としか見えず、原因にたどり着けない。
+  // 返事が返ってこないときも、押せないまま固まらないように打ち切る。
+  const run = async (task: () => Promise<{ ok: boolean; error?: string } | void>) => {
     if (busy) return
     setBusy(true)
     try {
-      await task()
+      const result = await Promise.race([
+        task(),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), SAVE_TIMEOUT_MS)),
+      ])
+      setError(result && !result.ok ? (result.error ?? '保存できませんでした。') : null)
+    } catch (e) {
+      console.error('shift action failed', e)
+      setError(
+        e instanceof Error && e.message === 'timeout'
+          ? '保存に時間がかかっています。電波を確かめて、もう一度押してください。'
+          : '保存できませんでした。通信を確かめて、もう一度押してください。',
+      )
     } finally {
       setBusy(false)
     }
@@ -80,6 +99,8 @@ export default function ShiftsPage() {
           店長
         </button>
       </div>
+
+      {error ? <div className="recorder-error rv-error">{error}</div> : null}
 
       {shifts.loading ? (
         <div className="empty-hint">読み込み中…</div>
@@ -142,8 +163,11 @@ export default function ShiftsPage() {
           onAssign={(staffName, date) => run(() => shifts.toggleAssignment(staffName, date))}
           onAutoFill={() =>
             run(async () => {
-              const added = await shifts.autoFill()
-              if (added === 0) window.alert('埋められる日はありませんでした。休み希望が多いか、既に埋まっています。')
+              const result = await shifts.autoFill()
+              if (result.ok && result.added === 0) {
+                window.alert('埋められる日はありませんでした。休み希望が多いか、既に埋まっています。')
+              }
+              return result
             })
           }
           onClear={() => {
