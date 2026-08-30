@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { TimeBreak, TimeEntry } from '@/lib/supabase'
 import { todayKey } from '@/lib/checklist'
-import { monthRange, stateOf } from '@/lib/timecard'
+import { monthRange, reanchorTo, stateOf } from '@/lib/timecard'
 import type { StaffState } from '@/lib/timecard'
 
 export type StaffRow = {
@@ -277,6 +277,40 @@ export function useTimecardMonth(monthKey: string) {
     [reload],
   )
 
+  /**
+   * 勤務日そのものを直す。押した日を間違えたときや、深夜勤務を
+   * 前の日の扱いにしたいときに使う。
+   * 出勤・退勤・休憩の時刻は work_date から組み立てているので、
+   * 日付だけ動かすと時刻が前の日に取り残される。まとめて付け替える。
+   */
+  const moveEntryDate = useCallback(
+    async (id: number, newWorkDate: string) => {
+      const target = items.find((i) => i.entry.id === id)
+      if (!target || target.entry.work_date === newWorkDate) return
+
+      await supabase
+        .from('time_entries')
+        .update({
+          work_date: newWorkDate,
+          clock_in: reanchorTo(target.entry.clock_in, newWorkDate),
+          clock_out: reanchorTo(target.entry.clock_out, newWorkDate),
+        })
+        .eq('id', id)
+
+      for (const b of target.breaks) {
+        const start = reanchorTo(b.break_start, newWorkDate)
+        if (!start) continue
+        await supabase
+          .from('time_breaks')
+          .update({ break_start: start, break_end: reanchorTo(b.break_end, newWorkDate) })
+          .eq('id', b.id)
+      }
+
+      await reload()
+    },
+    [items, reload],
+  )
+
   const updateBreak = useCallback(
     async (id: number, patch: Partial<Pick<TimeBreak, 'break_start' | 'break_end'>>) => {
       await supabase.from('time_breaks').update(patch).eq('id', id)
@@ -301,5 +335,5 @@ export function useTimecardMonth(monthKey: string) {
     [reload],
   )
 
-  return { loading, items, updateEntry, updateBreak, deleteBreak, deleteEntry, reload }
+  return { loading, items, updateEntry, moveEntryDate, updateBreak, deleteBreak, deleteEntry, reload }
 }

@@ -41,18 +41,24 @@ function buildCsv(items: MonthEntry[]): string {
 function EntryEditor({
   item,
   onUpdateEntry,
+  onMoveDate,
   onUpdateBreak,
   onDeleteBreak,
   onDeleteEntry,
 }: {
   item: MonthEntry
   onUpdateEntry: (id: number, patch: { clock_in?: string | null; clock_out?: string | null; note?: string | null }) => void
+  onMoveDate: (id: number, newWorkDate: string) => Promise<void>
   onUpdateBreak: (id: number, patch: { break_start?: string; break_end?: string | null }) => void
   onDeleteBreak: (id: number) => void
   onDeleteEntry: (id: number) => void
 }) {
   const { entry, breaks } = item
   const [note, setNote] = useState(entry.note ?? '')
+  const [workDate, setWorkDate] = useState(entry.work_date)
+  // 日付の付け替えは出勤・退勤・休憩を順に書き換えるので、
+  // 終わるまで触れないようにする。途中でもう一度動かすと記録が割れる。
+  const [moving, setMoving] = useState(false)
 
   const setEntryTime = (field: 'clock_in' | 'clock_out', hhmm: string) => {
     if (!hhmm) {
@@ -63,8 +69,47 @@ function EntryEditor({
     if (iso) onUpdateEntry(entry.id, { [field]: iso })
   }
 
+  // 日付を変えると、出勤・退勤・休憩の時刻もその日へ一緒に移る。
+  // 別の月へ動かすとこの一覧から消えるので、そこだけ確認を挟む。
+  const changeDate = async (value: string) => {
+    if (!value || value === entry.work_date || moving) return
+    setWorkDate(value)
+    const movesMonth = value.slice(0, 7) !== entry.work_date.slice(0, 7)
+    const ok = window.confirm(
+      `${entry.staff_name}さんの勤務日を ${entry.work_date} から ${value} に変えます。\n` +
+        '出勤・退勤・休憩の時刻も、そのままこの日へ移ります。' +
+        (movesMonth ? '\n\n別の月へ移るため、この一覧からは見えなくなります。' : ''),
+    )
+    if (!ok) {
+      setWorkDate(entry.work_date)
+      return
+    }
+    setMoving(true)
+    try {
+      await onMoveDate(entry.id, value)
+    } finally {
+      setMoving(false)
+    }
+  }
+
   return (
     <div className="tc-editor">
+      <label className="tc-edit-field">
+        <span>勤務日</span>
+        <input
+          type="date"
+          className="satisfaction-input tc-date-input"
+          value={workDate}
+          disabled={moving}
+          onChange={(e) => void changeDate(e.target.value)}
+        />
+      </label>
+      <div className="tc-edit-hint">
+        {moving
+          ? '勤務日を移しています…'
+          : '日付を直すと、出勤・退勤・休憩の時刻もその日へ移ります。深夜1時の退勤は、移した先でも翌日の1時のままです。'}
+      </div>
+
       <div className="tc-edit-row">
         <label className="tc-edit-field">
           <span>出勤</span>
@@ -155,7 +200,7 @@ function EntryEditor({
 
 export default function TimecardAdmin() {
   const [monthKey, setMonthKey] = useState(currentMonthKey)
-  const { loading, items, updateEntry, updateBreak, deleteBreak, deleteEntry } = useTimecardMonth(monthKey)
+  const { loading, items, updateEntry, moveEntryDate, updateBreak, deleteBreak, deleteEntry } = useTimecardMonth(monthKey)
   const [openId, setOpenId] = useState<number | null>(null)
 
   const summary = useMemo(() => {
@@ -296,6 +341,7 @@ export default function TimecardAdmin() {
                     <EntryEditor
                       item={item}
                       onUpdateEntry={updateEntry}
+                      onMoveDate={moveEntryDate}
                       onUpdateBreak={updateBreak}
                       onDeleteBreak={deleteBreak}
                       onDeleteEntry={(id) => {
