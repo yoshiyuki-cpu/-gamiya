@@ -61,6 +61,17 @@ export function composeAt(workDate: string, hhmm: string): string | null {
   return new Date(Number(y), Number(mo) - 1, Number(d) + dayOffset, hh, mi, 0, 0).toISOString()
 }
 
+/**
+ * 打刻を別の勤務日へ付け替える。時刻(HH:MM)はそのままに、日付だけを動かす。
+ * 勤務日を直すとき、出勤・退勤・休憩の時刻はすべて work_date から
+ * 組み立てられているため、日付だけ変えると時刻が前の日に取り残される。
+ * 深夜1時の退勤は移した先でも「翌日の1時」になる(composeAt の決まりどおり)。
+ */
+export function reanchorTo(iso: string | null, newWorkDate: string): string | null {
+  if (!iso) return null
+  return composeAt(newWorkDate, timeLabel(iso))
+}
+
 /** 'YYYY-MM' の月に含まれる営業日の範囲(月末日も含む)。 */
 export function monthRange(monthKey: string): { start: string; end: string } {
   const [y, m] = monthKey.split('-').map(Number)
