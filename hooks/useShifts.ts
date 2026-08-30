@@ -25,6 +25,29 @@ import {
   type StaffMember,
 } from '@/lib/shifts'
 
+export type ShiftResult = { ok: true } | { ok: false; error: string }
+
+type DbError = { message?: string; code?: string } | null
+
+/**
+ * 保存に失敗した理由を、現場の言葉で返す。
+ * 黙って失敗すると「ボタンが押せない」としか見えないため、必ず画面に出す。
+ */
+function describeError(error: DbError): string {
+  const message = error?.message ?? ''
+  // Supabaseでシフトの表をまだ作っていないとき。いちばん起きやすい。
+  if (error?.code === '42P01' || /does not exist|Could not find the table/i.test(message)) {
+    return 'シフトの表がデータベースにまだありません。Supabaseで supabase-migration-shifts.sql を実行してください。'
+  }
+  if (error?.code === '42501' || /permission denied/i.test(message)) {
+    return 'データベースの権限が足りません。supabase-migration-shifts.sql の grant の行を実行してください。'
+  }
+  if (/Failed to fetch|NetworkError/i.test(message)) {
+    return '通信できませんでした。電波を確かめて、もう一度押してください。'
+  }
+  return `保存できませんでした${message ? `(${message})` : ''}。もう一度押してください。`
+}
+
 export function useShifts(period: ShiftPeriod) {
   const [loading, setLoading] = useState(true)
   const [staff, setStaff] = useState<StaffName[]>([])
@@ -165,54 +188,92 @@ export function useShifts(period: ShiftPeriod) {
 
   /** 休み希望・出勤希望を1日ぶん切り替える。同じものをもう一度押すと取り消し。 */
   const setRequest = useCallback(
-    async (staffName: string, date: string, kind: 'off' | 'want' | null) => {
+    async (staffName: string, date: string, kind: 'off' | 'want' | null): Promise<ShiftResult> => {
+      const before = requests
       const existing = requests.find((r) => r.staff_name === staffName && r.work_date === date)
+
       if (kind === null) {
-        if (!existing) return
+        if (!existing) return { ok: true }
         setRequests((prev) => prev.filter((r) => r.id !== existing.id))
-        await supabase.from('shift_requests').delete().eq('id', existing.id)
-        return
+        const { error } = await supabase.from('shift_requests').delete().eq('id', existing.id)
+        if (error) {
+          setRequests(before)
+          return { ok: false, error: describeError(error) }
+        }
+        return { ok: true }
       }
-      const { data } = await supabase
+
+      // 先に画面へ映してから保存する。押しても何も変わらないと、
+      // 現場では「押せない」としか見えないため。
+      const optimistic: ShiftRequest = existing
+        ? { ...existing, kind }
+        : {
+            id: -Date.now(),
+            staff_name: staffName,
+            work_date: date,
+            kind,
+            note: null,
+            created_at: '',
+            updated_at: '',
+          }
+      setRequests((prev) => [
+        ...prev.filter((r) => !(r.staff_name === staffName && r.work_date === date)),
+        optimistic,
+      ])
+
+      const { data, error } = await supabase
         .from('shift_requests')
         .upsert({ staff_name: staffName, work_date: date, kind }, { onConflict: 'staff_name,work_date' })
         .select()
         .single()
-      if (data) {
-        const row = data as ShiftRequest
-        setRequests((prev) => [...prev.filter((r) => r.id !== row.id && !(r.staff_name === staffName && r.work_date === date)), row])
+
+      if (error || !data) {
+        setRequests(before)
+        return { ok: false, error: describeError(error) }
       }
+      const row = data as ShiftRequest
+      setRequests((prev) => [...prev.filter((r) => !(r.staff_name === staffName && r.work_date === date)), row])
+      return { ok: true }
     },
     [requests],
   )
 
   /** 「この期間の希望は出し終えた」と記録する。未提出の人にだけ声をかけるために要る。 */
   const submit = useCallback(
-    async (staffName: string) => {
-      const { data } = await supabase
+    async (staffName: string): Promise<ShiftResult> => {
+      const { data, error } = await supabase
         .from('shift_submissions')
         .upsert({ staff_name: staffName, period_key: key }, { onConflict: 'staff_name,period_key' })
         .select()
         .single()
-      if (data) setSubmissions((prev) => [...prev.filter((s) => s.staff_name !== staffName), data as ShiftSubmission])
+      if (error || !data) return { ok: false, error: describeError(error) }
+      setSubmissions((prev) => [...prev.filter((s) => s.staff_name !== staffName), data as ShiftSubmission])
+      return { ok: true }
     },
     [key],
   )
 
   const toggleAssignment = useCallback(
-    async (staffName: string, date: string) => {
+    async (staffName: string, date: string): Promise<ShiftResult> => {
+      const before = assignments
       const existing = assignments.find((a) => a.staff_name === staffName && a.work_date === date)
       if (existing) {
         setAssignments((prev) => prev.filter((a) => a.id !== existing.id))
-        await supabase.from('shift_assignments').delete().eq('id', existing.id)
-        return
+        const { error } = await supabase.from('shift_assignments').delete().eq('id', existing.id)
+        if (error) {
+          setAssignments(before)
+          return { ok: false, error: describeError(error) }
+        }
+        return { ok: true }
       }
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('shift_assignments')
         .insert({ staff_name: staffName, work_date: date })
         .select()
         .single()
-      if (data) setAssignments((prev) => [...prev, data as ShiftAssignment])
+      if (error || !data) return { ok: false, error: describeError(error) }
+      setAssignments((prev) => [...prev, data as ShiftAssignment])
+      return { ok: true }
     },
     [assignments],
   )
@@ -238,39 +299,62 @@ export function useShifts(period: ShiftPeriod) {
         if (!(already[d] ?? []).includes(name)) rows.push({ staff_name: name, work_date: d })
       }
     }
-    if (rows.length === 0) return 0
+    if (rows.length === 0) return { ok: true, added: 0 } as const
 
-    const { data } = await supabase.from('shift_assignments').insert(rows).select()
-    if (data) setAssignments((prev) => [...prev, ...(data as ShiftAssignment[])])
-    return rows.length
+    const { data, error } = await supabase.from('shift_assignments').insert(rows).select()
+    if (error || !data) return { ok: false, error: describeError(error) } as const
+    setAssignments((prev) => [...prev, ...(data as ShiftAssignment[])])
+    return { ok: true, added: rows.length } as const
   }, [requests, assignments, dates, members, needByWeekday, overrideMap])
 
-  const clearAssignments = useCallback(async () => {
+  const clearAssignments = useCallback(async (): Promise<ShiftResult> => {
+    const before = assignments
     setAssignments([])
-    await supabase.from('shift_assignments').delete().gte('work_date', from).lte('work_date', to)
-  }, [from, to])
+    const { error } = await supabase.from('shift_assignments').delete().gte('work_date', from).lte('work_date', to)
+    if (error) {
+      setAssignments(before)
+      return { ok: false, error: describeError(error) }
+    }
+    return { ok: true }
+  }, [assignments, from, to])
 
-  const saveRequirement = useCallback(async (weekday: number, patch: Partial<Requirement>) => {
-    const { data } = await supabase
+  const saveRequirement = useCallback(async (weekday: number, patch: Partial<Requirement>): Promise<ShiftResult> => {
+    const { data, error } = await supabase
       .from('shift_requirements')
       .upsert({ weekday, ...DEFAULT_REQUIREMENT, ...patch }, { onConflict: 'weekday' })
       .select()
       .single()
-    if (data) {
-      const row = data as ShiftRequirement
-      setRequirements((prev) => [...prev.filter((r) => r.weekday !== weekday), row].sort((a, b) => a.weekday - b.weekday))
-    }
+    if (error || !data) return { ok: false, error: describeError(error) }
+    const row = data as ShiftRequirement
+    setRequirements((prev) => [...prev.filter((r) => r.weekday !== weekday), row].sort((a, b) => a.weekday - b.weekday))
+    return { ok: true }
   }, [])
 
-  const saveSettings = useCallback(async (patch: Partial<Pick<ShiftSettings, 'first_half_deadline_day' | 'second_half_deadline_day'>>) => {
-    const { data } = await supabase.from('shift_settings').update(patch).eq('id', 1).select().single()
-    if (data) setSettings(data as ShiftSettings)
-  }, [])
+  const saveSettings = useCallback(
+    async (
+      patch: Partial<Pick<ShiftSettings, 'first_half_deadline_day' | 'second_half_deadline_day'>>,
+    ): Promise<ShiftResult> => {
+      const { data, error } = await supabase.from('shift_settings').update(patch).eq('id', 1).select().single()
+      if (error || !data) return { ok: false, error: describeError(error) }
+      setSettings(data as ShiftSettings)
+      return { ok: true }
+    },
+    [],
+  )
 
-  const saveStaff = useCallback(async (name: string, patch: Partial<Pick<StaffName, 'role' | 'position' | 'active'>>) => {
-    setStaff((prev) => prev.map((s) => (s.name === name ? { ...s, ...patch } : s)))
-    await supabase.from('staff_names').update(patch).eq('name', name)
-  }, [])
+  const saveStaff = useCallback(
+    async (name: string, patch: Partial<Pick<StaffName, 'role' | 'position' | 'active'>>): Promise<ShiftResult> => {
+      const before = staff
+      setStaff((prev) => prev.map((s) => (s.name === name ? { ...s, ...patch } : s)))
+      const { error } = await supabase.from('staff_names').update(patch).eq('name', name)
+      if (error) {
+        setStaff(before)
+        return { ok: false, error: describeError(error) }
+      }
+      return { ok: true }
+    },
+    [staff],
+  )
 
   return {
     loading: loading || stale,
