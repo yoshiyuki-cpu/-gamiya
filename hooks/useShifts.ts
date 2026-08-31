@@ -318,17 +318,45 @@ export function useShifts(period: ShiftPeriod) {
     return { ok: true }
   }, [assignments, from, to])
 
-  const saveRequirement = useCallback(async (weekday: number, patch: Partial<Requirement>): Promise<ShiftResult> => {
-    const { data, error } = await supabase
-      .from('shift_requirements')
-      .upsert({ weekday, ...DEFAULT_REQUIREMENT, ...patch }, { onConflict: 'weekday' })
-      .select()
-      .single()
-    if (error || !data) return { ok: false, error: describeError(error) }
-    const row = data as ShiftRequirement
-    setRequirements((prev) => [...prev.filter((r) => r.weekday !== weekday), row].sort((a, b) => a.weekday - b.weekday))
-    return { ok: true }
-  }, [])
+  const saveRequirement = useCallback(
+    async (weekday: number, patch: Partial<Requirement>): Promise<ShiftResult> => {
+      const before = requirements
+      const current = requirements.find((r) => r.weekday === weekday)
+      // upsert は行をまるごと置き換える。今ある値を土台にしないと、
+      // 合計だけ直したつもりでホールとキッチンが既定値に戻ってしまう。
+      const base: Requirement = current
+        ? {
+            total_needed: current.total_needed,
+            hall_needed: current.hall_needed,
+            kitchen_needed: current.kitchen_needed,
+            staff_needed: current.staff_needed,
+          }
+        : DEFAULT_REQUIREMENT
+      const next = { weekday, ...base, ...patch }
+
+      // 先に画面へ映す。保存されたのかどうかが見えないと、
+      // 入れ直しても同じところで止まってしまう。
+      setRequirements((prev) =>
+        [...prev.filter((r) => r.weekday !== weekday), { ...next, updated_at: '' } as ShiftRequirement].sort(
+          (a, b) => a.weekday - b.weekday,
+        ),
+      )
+
+      const { data, error } = await supabase
+        .from('shift_requirements')
+        .upsert(next, { onConflict: 'weekday' })
+        .select()
+        .single()
+      if (error || !data) {
+        setRequirements(before)
+        return { ok: false, error: describeError(error) }
+      }
+      const row = data as ShiftRequirement
+      setRequirements((prev) => [...prev.filter((r) => r.weekday !== weekday), row].sort((a, b) => a.weekday - b.weekday))
+      return { ok: true }
+    },
+    [requirements],
+  )
 
   const saveSettings = useCallback(
     async (
