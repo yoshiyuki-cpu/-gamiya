@@ -135,6 +135,22 @@ export default function ShiftAdmin({
 }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  // 打っている途中の値。欄から離れたら消して、保存された値を出す。
+  const [draft, setDraft] = useState<Record<string, string>>({})
+
+  /** 欄から離れたときに保存する。数字として読めないものと、変わっていないものは送らない。 */
+  const commitNumber = (slot: string, stored: number, save: (value: number) => void) => {
+    const typed = draft[slot]
+    setDraft((d) => {
+      const next = { ...d }
+      delete next[slot]
+      return next
+    })
+    if (typed === undefined) return
+    const value = Number(typed)
+    if (!Number.isFinite(value) || typed.trim() === '' || value < 0 || value === stored) return
+    save(value)
+  }
 
   const shortDays = statuses.filter((s) => s.shortage > 0)
   const overDays = statuses.filter((s) => s.surplus > 0)
@@ -232,20 +248,26 @@ export default function ShiftAdmin({
               return (
                 <div key={weekday} className="sh-need-row">
                   <span className={`sh-need-day${weekday === 0 ? ' sh-sun' : weekday === 6 ? ' sh-sat' : ''}`}>{label}</span>
-                  {(['total_needed', 'hall_needed', 'kitchen_needed', 'staff_needed'] as const).map((field) => (
-                    <input
-                      key={field}
-                      className="satisfaction-input sh-need-input"
-                      type="number"
-                      min={0}
-                      max={20}
-                      defaultValue={r?.[field] ?? 0}
-                      onBlur={(e) => {
-                        const value = Number(e.target.value)
-                        if (Number.isFinite(value) && value !== r?.[field]) onSaveRequirement(weekday, { [field]: value })
-                      }}
-                    />
-                  ))}
+                  {(['total_needed', 'hall_needed', 'kitchen_needed', 'staff_needed'] as const).map((field) => {
+                    const slot = `${weekday}-${field}`
+                    const stored = r?.[field] ?? 0
+                    return (
+                      <input
+                        key={field}
+                        className="satisfaction-input sh-need-input"
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={20}
+                        // 打っている間だけ手元の値を出し、離れたら保存された値に戻す。
+                        // 入力欄まかせにすると、保存できなかった数字が画面に
+                        // 残り続けて、保存できたように見えてしまう。
+                        value={draft[slot] ?? String(stored)}
+                        onChange={(e) => setDraft((d) => ({ ...d, [slot]: e.target.value }))}
+                        onBlur={() => commitNumber(slot, stored, (value) => onSaveRequirement(weekday, { [field]: value }))}
+                      />
+                    )
+                  })}
                 </div>
               )
             })}
@@ -256,10 +278,16 @@ export default function ShiftAdmin({
               <input
                 className="satisfaction-input sh-need-input"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={31}
-                defaultValue={settings?.first_half_deadline_day ?? 20}
-                onBlur={(e) => onSaveSettings({ first_half_deadline_day: Number(e.target.value) })}
+                value={draft.first ?? String(settings?.first_half_deadline_day ?? 20)}
+                onChange={(e) => setDraft((d) => ({ ...d, first: e.target.value }))}
+                onBlur={() =>
+                  commitNumber('first', settings?.first_half_deadline_day ?? 20, (value) =>
+                    onSaveSettings({ first_half_deadline_day: value }),
+                  )
+                }
               />
               <span>日まで</span>
             </div>
@@ -268,10 +296,16 @@ export default function ShiftAdmin({
               <input
                 className="satisfaction-input sh-need-input"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={31}
-                defaultValue={settings?.second_half_deadline_day ?? 5}
-                onBlur={(e) => onSaveSettings({ second_half_deadline_day: Number(e.target.value) })}
+                value={draft.second ?? String(settings?.second_half_deadline_day ?? 5)}
+                onChange={(e) => setDraft((d) => ({ ...d, second: e.target.value }))}
+                onBlur={() =>
+                  commitNumber('second', settings?.second_half_deadline_day ?? 5, (value) =>
+                    onSaveSettings({ second_half_deadline_day: value }),
+                  )
+                }
               />
               <span>日まで</span>
             </div>

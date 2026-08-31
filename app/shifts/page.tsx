@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useShifts } from '@/hooks/useShifts'
 import { todayKey } from '@/lib/checklist'
 import { nextPeriod, periodLabel, periodOf, prevPeriod, type ShiftPeriod } from '@/lib/shifts'
@@ -29,6 +29,16 @@ export default function ShiftsPage() {
   })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // 設定の画面は保存しても見た目が変わらないので、保存できたことを短く出す。
+  const [saved, setSaved] = useState(false)
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const queue = useRef<Promise<void>>(Promise.resolve())
+
+  useEffect(() => {
+    return () => {
+      if (savedTimer.current) clearTimeout(savedTimer.current)
+    }
+  }, [])
 
   const shifts = useShifts(period)
 
@@ -63,6 +73,34 @@ export default function ShiftsPage() {
     } finally {
       setBusy(false)
     }
+  }
+
+  /**
+   * 設定の入力用。run と違って、前の保存が終わるのを待ってから順に流す。
+   * 表の欄を続けて直すと保存が重なるが、run は重なったぶんを黙って
+   * 捨ててしまうため、「入力しても保存されない」ように見えていた。
+   */
+  const save = (task: () => Promise<{ ok: boolean; error?: string } | void>) => {
+    queue.current = queue.current.then(async () => {
+      try {
+        const result = await Promise.race([
+          task(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), SAVE_TIMEOUT_MS)),
+        ])
+        if (result && !result.ok) {
+          setError(result.error ?? '保存できませんでした。')
+          return
+        }
+        setError(null)
+        setSaved(true)
+        if (savedTimer.current) clearTimeout(savedTimer.current)
+        savedTimer.current = setTimeout(() => setSaved(false), 2000)
+      } catch (e) {
+        console.error('shift setting save failed', e)
+        setError('保存できませんでした。通信を確かめて、もう一度入力してください。')
+      }
+    })
+    return queue.current
   }
 
   return (
@@ -101,6 +139,7 @@ export default function ShiftsPage() {
       </div>
 
       {error ? <div className="recorder-error rv-error">{error}</div> : null}
+      {saved && !error ? <div className="sh-saved">保存しました</div> : null}
 
       {shifts.loading ? (
         <div className="empty-hint">読み込み中…</div>
@@ -175,9 +214,9 @@ export default function ShiftsPage() {
               run(() => shifts.clearAssignments())
             }
           }}
-          onSaveRequirement={(weekday, patch) => run(() => shifts.saveRequirement(weekday, patch))}
-          onSaveSettings={(patch) => run(() => shifts.saveSettings(patch))}
-          onSaveStaff={(staffName, patch) => run(() => shifts.saveStaff(staffName, patch))}
+          onSaveRequirement={(weekday, patch) => save(() => shifts.saveRequirement(weekday, patch))}
+          onSaveSettings={(patch) => save(() => shifts.saveSettings(patch))}
+          onSaveStaff={(staffName, patch) => save(() => shifts.saveStaff(staffName, patch))}
         />
       )}
 
