@@ -36,6 +36,7 @@ export default function Home() {
     deleteItem,
     moveItem,
     toggleQuantityMode,
+    toggleNoteMode,
     resetDailyChecks,
     restoreDefaults,
   } = useChecklist()
@@ -83,6 +84,7 @@ export default function Home() {
             onSetItemStaff={setItemStaff}
             onMoveItem={moveItem}
             onToggleQuantityMode={toggleQuantityMode}
+            onToggleNoteMode={toggleNoteMode}
             onDeleteItem={deleteItem}
             onAddItemsBulk={addItemsBulk}
             onDeleteCategory={deleteCategory}

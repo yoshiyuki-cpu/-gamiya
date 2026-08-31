@@ -23,6 +23,10 @@ export type Item = {
   category_id: string
   text: string
   has_quantity: boolean
+  // 手順メモ。チェックも数量も付かない、読むだけの行。
+  // 「トイレ清掃」のように、作業そのものは別の1項目で数えていて、
+  // 中身だけを手順として画面に残したいときに使う。
+  is_note: boolean
   sort_order: number
   updated_at: string
   created_at: string

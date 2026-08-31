@@ -18,6 +18,7 @@ create table items (
   category_id text not null references categories(id) on delete cascade,
   text text not null,
   has_quantity boolean not null default false,
+  is_note boolean not null default false,   -- 手順メモ:チェックの付かない、読むだけの行
   sort_order double precision not null,
   updated_at timestamptz not null default now(),
   created_at timestamptz not null default now()

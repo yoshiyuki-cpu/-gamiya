@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Category, DailyRecord, Item } from '@/lib/supabase'
-import { currentTimeLabel, todayKey } from '@/lib/checklist'
+import { checkableItems, currentTimeLabel, todayKey } from '@/lib/checklist'
 
 const STAFF_STORAGE_KEY = 'gamiya:current-staff'
 const QUANTITY_DEBOUNCE_MS = 500
@@ -355,6 +355,7 @@ export function useChecklist() {
         category_id: categoryId,
         text,
         has_quantity: false,
+        is_note: false,
         sort_order: base + (idx + 1) * 100,
       }))
       const { data } = await supabase.from('items').insert(rows).select()
@@ -395,23 +396,43 @@ export function useChecklist() {
     [items, applyItem],
   )
 
-  const toggleQuantityMode = useCallback(
-    async (itemId: number) => {
-      const item = items.find((i) => i.id === itemId)
-      if (!item) return
-      const newHasQuantity = !item.has_quantity
-      setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, has_quantity: newHasQuantity } : i)))
+  // 「数量入力」と「手順メモ」は同時には成り立たないので、
+  // 片方を入れたらもう片方は落とす。どちらに切り替えても、
+  // それまでの記録は意味が変わるので消してから切り替える。
+  const applyItemMode = useCallback(
+    async (itemId: number, patch: { has_quantity: boolean; is_note: boolean }) => {
+      setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, ...patch } : i)))
       setDailyRecords((prev) => {
         const next = new Map(prev)
         next.delete(itemId)
         return next
       })
       await Promise.all([
-        supabase.from('items').update({ has_quantity: newHasQuantity }).eq('id', itemId),
+        supabase.from('items').update(patch).eq('id', itemId),
         supabase.from('daily_records').delete().eq('item_id', itemId).eq('record_date', dailyKeyRef.current),
       ])
     },
-    [items],
+    [],
+  )
+
+  const toggleQuantityMode = useCallback(
+    (itemId: number) => {
+      const item = items.find((i) => i.id === itemId)
+      if (!item) return
+      const hasQuantity = !item.has_quantity
+      void applyItemMode(itemId, { has_quantity: hasQuantity, is_note: hasQuantity ? false : item.is_note })
+    },
+    [items, applyItemMode],
+  )
+
+  const toggleNoteMode = useCallback(
+    (itemId: number) => {
+      const item = items.find((i) => i.id === itemId)
+      if (!item) return
+      const isNote = !item.is_note
+      void applyItemMode(itemId, { is_note: isNote, has_quantity: isNote ? false : item.has_quantity })
+    },
+    [items, applyItemMode],
   )
 
   // ---- footer actions ---------------------------------------------------
@@ -432,8 +453,10 @@ export function useChecklist() {
 
   // ---- derived progress ---------------------------------------------
 
-  const total = items.length
-  const doneCount = items.filter((it) => {
+  // 手順メモは押す対象ではないので「◯/◯ 完了」から外す。
+  const countedItems = checkableItems(items)
+  const total = countedItems.length
+  const doneCount = countedItems.filter((it) => {
     const record = dailyRecords.get(it.id)
     if (it.has_quantity) return !!(record?.quantity_value && record.quantity_value.trim() !== '')
     return !!record?.checked
@@ -462,6 +485,7 @@ export function useChecklist() {
     deleteItem,
     moveItem,
     toggleQuantityMode,
+    toggleNoteMode,
     resetDailyChecks,
     restoreDefaults,
   }

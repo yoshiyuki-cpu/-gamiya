@@ -37,7 +37,7 @@ export default function Header({
           <h1 className="title">開店準備</h1>
           <div className="subtitle">
             {editMode
-              ? 'リストを編集中:項目の追加・削除・数量入力の切り替えができます'
+              ? 'リストを編集中:項目の追加・削除・数量入力/手順メモの切り替えができます'
               : `${todayLabelText()} ・ ${doneCount}/${total} 完了`}
           </div>
         </div>
