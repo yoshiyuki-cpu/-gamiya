@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
   const today = todayKey()
 
   const [{ data: items }, { data: records }, { data: orders }, { data: meetings }] = await Promise.all([
-    supabase.from('items').select('id, text, has_quantity'),
+    // 手順メモ(is_note)は完了/未完了の対象ではないので、読み上げる材料から外す。
+    supabase.from('items').select('id, text, has_quantity').eq('is_note', false),
     supabase.from('daily_records').select('item_id, checked, quantity_value, staff_name').eq('record_date', today),
     supabase
       .from('wall_orders')

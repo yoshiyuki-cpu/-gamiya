@@ -15,6 +15,7 @@ type Props = {
   onSetItemStaff: (itemId: number, name: string) => void
   onMoveItem: (categoryId: string, itemId: number, direction: 1 | -1) => void
   onToggleQuantityMode: (itemId: number) => void
+  onToggleNoteMode: (itemId: number) => void
   onDeleteItem: (itemId: number) => void
   onAddItemsBulk: (categoryId: string, rawText: string) => void
   onDeleteCategory: (categoryId: string, categoryName: string) => void
@@ -31,6 +32,7 @@ export default function CategoryCard({
   onSetItemStaff,
   onMoveItem,
   onToggleQuantityMode,
+  onToggleNoteMode,
   onDeleteItem,
   onAddItemsBulk,
   onDeleteCategory,
@@ -39,6 +41,9 @@ export default function CategoryCard({
   const [expanded, setExpanded] = useState(true)
   const sortedItems = [...items].sort((a, b) => a.sort_order - b.sort_order)
   const open = editMode || expanded
+  // 中身が手順メモだけのカテゴリー(例:トイレ清掃)は、押す場所がないので
+  // 見出しに「手順」と出して、チェック漏れと勘違いされないようにする。
+  const noteOnly = sortedItems.length > 0 && sortedItems.every((i) => i.is_note)
 
   return (
     <div className="category">
@@ -50,7 +55,10 @@ export default function CategoryCard({
       >
         <div className="badge">{category.badge}</div>
         <div>
-          <div className="category-name">{category.name}</div>
+          <div className="category-name">
+            {category.name}
+            {noteOnly ? <span className="note-badge">手順</span> : null}
+          </div>
           <div className="category-sub">{category.sub}</div>
         </div>
         {editMode ? (
@@ -86,6 +94,7 @@ export default function CategoryCard({
             onSetItemStaff={onSetItemStaff}
             onMove={(direction) => onMoveItem(category.id, item.id, direction)}
             onToggleQuantityMode={() => onToggleQuantityMode(item.id)}
+            onToggleNoteMode={() => onToggleNoteMode(item.id)}
             onDelete={() => onDeleteItem(item.id)}
           />
         ))}
@@ -106,7 +115,9 @@ export default function CategoryCard({
             >
               このカテゴリーに追加
             </button>
-            <div className="bulk-add-hint">追加した項目はあとから「数量入力」に切り替えられます</div>
+            <div className="bulk-add-hint">
+              追加した項目はあとから「数量入力」「手順メモ」に切り替えられます。手順メモはチェックが付かず、完了数にも入りません
+            </div>
           </div>
         ) : null}
       </div>

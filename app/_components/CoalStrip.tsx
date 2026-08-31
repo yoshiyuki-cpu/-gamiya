@@ -1,5 +1,5 @@
 import type { DailyRecord, Item } from '@/lib/supabase'
-import { isDone } from '@/lib/checklist'
+import { checkableItems, isDone } from '@/lib/checklist'
 
 export default function CoalStrip({
   items,
@@ -10,7 +10,7 @@ export default function CoalStrip({
 }) {
   return (
     <div className="coal-strip">
-      {items.map((item) => (
+      {checkableItems(items).map((item) => (
         <div key={item.id} className={`coal${isDone(item, dailyRecords.get(item.id)) ? ' lit' : ''}`} />
       ))}
     </div>

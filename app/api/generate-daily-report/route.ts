@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
   const { start: dayStart, end: dayEnd } = businessDayRange(reportDate)
 
   const [{ data: items }, { data: records }, { data: orders }, { data: meetings }] = await Promise.all([
-    supabase.from('items').select('id, text, has_quantity'),
+    // 手順メモ(is_note)はチェックする項目ではないので、日報の分母から外す。
+    supabase.from('items').select('id, text, has_quantity').eq('is_note', false),
     supabase.from('daily_records').select('item_id, checked, quantity_value').eq('record_date', reportDate),
     supabase
       .from('wall_orders')

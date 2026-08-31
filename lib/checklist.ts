@@ -55,6 +55,11 @@ export function currentTimeLabel(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+// 手順メモ(is_note)は読むだけの行なので、進捗の分母にも日報の集計にも入れない。
+export function checkableItems(items: Item[]): Item[] {
+  return items.filter((item) => !item.is_note)
+}
+
 export function isDone(item: Item, record: DailyRecord | undefined): boolean {
   if (item.has_quantity) {
     const v = record?.quantity_value

@@ -136,6 +136,7 @@ type Props = {
   onSetItemStaff: (itemId: number, name: string) => void
   onMove: (direction: 1 | -1) => void
   onToggleQuantityMode: () => void
+  onToggleNoteMode: () => void
   onDelete: () => void
 }
 
@@ -151,6 +152,7 @@ export default function ItemRow({
   onSetItemStaff,
   onMove,
   onToggleQuantityMode,
+  onToggleNoteMode,
   onDelete,
 }: Props) {
   if (editMode) {
@@ -178,7 +180,26 @@ export default function ItemRow({
           >
             数量入力
           </button>
+          <button
+            type="button"
+            className={`qty-toggle${item.is_note ? ' active' : ''}`}
+            onClick={onToggleNoteMode}
+          >
+            手順メモ
+          </button>
         </div>
+      </div>
+    )
+  }
+
+  // 手順メモは読むだけの行。チェック欄も担当者も出さず、字下げして並べる。
+  if (item.is_note) {
+    return (
+      <div className="item item-note">
+        <span className="note-mark" aria-hidden="true">
+          ·
+        </span>
+        <span className="note-text">{item.text}</span>
       </div>
     )
   }
