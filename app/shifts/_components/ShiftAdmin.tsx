@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { dayLabel, POSITION_LABEL, ROLE_LABEL, weekdayOf, type DayStatus, type StaffMember } from '@/lib/shifts'
 import type { ShiftAssignment, ShiftRequest, ShiftRequirement, ShiftSettings, StaffName } from '@/lib/supabase'
 
 const WEEKDAY_NAMES = ['日', '月', '火', '水', '木', '金', '土']
+
+// 設定を開いていたかどうかを覚えておく置き場。
+const SETTINGS_OPEN_KEY = 'gamiya-shift-settings-open'
 
 function DayRow({
   status,
@@ -134,22 +137,67 @@ export default function ShiftAdmin({
   onSaveStaff: (name: string, patch: Record<string, string | boolean>) => void
 }) {
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
-  // 打っている途中の値。欄から離れたら消して、保存された値を出す。
+  // 打っている途中の値。保存されたら消して、保存された値を出す。
   const [draft, setDraft] = useState<Record<string, string>>({})
 
-  /** 欄から離れたときに保存する。数字として読めないものと、変わっていないものは送らない。 */
-  const commitNumber = (slot: string, stored: number, save: (value: number) => void) => {
-    const typed = draft[slot]
-    setDraft((d) => {
-      const next = { ...d }
-      delete next[slot]
-      return next
-    })
-    if (typed === undefined) return
-    const value = Number(typed)
-    if (!Number.isFinite(value) || typed.trim() === '' || value < 0 || value === stored) return
-    save(value)
+  // まだ保存していない入力。欄から離れる前にメニューが閉じても
+  // 送れるよう、画面の状態とは別にここへ持っておく。
+  const pending = useRef<Record<string, { typed: string; stored: number; save: (value: number) => void }>>({})
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /** たまっている入力をまとめて保存する。 */
+  const flush = useCallback(() => {
+    if (timer.current) {
+      clearTimeout(timer.current)
+      timer.current = null
+    }
+    const entries = Object.entries(pending.current)
+    if (entries.length === 0) return
+    pending.current = {}
+    setDraft({})
+    for (const [, item] of entries) {
+      const value = Number(item.typed)
+      if (!Number.isFinite(value) || item.typed.trim() === '' || value < 0 || value === item.stored) continue
+      item.save(value)
+    }
+  }, [])
+
+  /**
+   * 打つたびに予約しておき、手が止まったら保存する。
+   * 「欄から離れたとき」だけに任せると、離れないままメニューを閉じたり
+   * 画面が作り直されたりしたときに、入力がそのまま消える。
+   */
+  const changeNumber = (slot: string, typed: string, stored: number, save: (value: number) => void) => {
+    setDraft((d) => ({ ...d, [slot]: typed }))
+    pending.current[slot] = { typed, stored, save }
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(flush, 700)
+  }
+
+  // 画面から外れるときも、打ちかけを取りこぼさない。
+  useEffect(() => flush, [flush])
+
+  // 設定を開いているかどうかは、この画面が作り直されても保つ。
+  // 勝手に閉じると、入力の途中だったのか分からなくなる。
+  const [showSettings, setShowSettings] = useState(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return window.sessionStorage.getItem(SETTINGS_OPEN_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+
+  const toggleSettings = () => {
+    // 閉じる前に、打ちかけを保存してしまう。
+    flush()
+    const next = !showSettings
+    setShowSettings(next)
+    try {
+      window.sessionStorage.setItem(SETTINGS_OPEN_KEY, next ? '1' : '0')
+    } catch {
+      // 保存できなくても開け閉めそのものは使える。
+    }
   }
 
   const shortDays = statuses.filter((s) => s.shortage > 0)
@@ -222,7 +270,7 @@ export default function ShiftAdmin({
       </div>
 
       <div className="category">
-        <div className="category-head" role="button" tabIndex={0} onClick={() => setShowSettings(!showSettings)}>
+        <div className="category-head" role="button" tabIndex={0} onClick={toggleSettings}>
           <div className="badge">設</div>
           <div>
             <div className="category-name">必要人数とスタッフの設定</div>
@@ -263,8 +311,12 @@ export default function ShiftAdmin({
                         // 入力欄まかせにすると、保存できなかった数字が画面に
                         // 残り続けて、保存できたように見えてしまう。
                         value={draft[slot] ?? String(stored)}
-                        onChange={(e) => setDraft((d) => ({ ...d, [slot]: e.target.value }))}
-                        onBlur={() => commitNumber(slot, stored, (value) => onSaveRequirement(weekday, { [field]: value }))}
+                        onChange={(e) =>
+                          changeNumber(slot, e.target.value, stored, (value) =>
+                            onSaveRequirement(weekday, { [field]: value }),
+                          )
+                        }
+                        onBlur={flush}
                       />
                     )
                   })}
@@ -282,12 +334,12 @@ export default function ShiftAdmin({
                 min={1}
                 max={31}
                 value={draft.first ?? String(settings?.first_half_deadline_day ?? 20)}
-                onChange={(e) => setDraft((d) => ({ ...d, first: e.target.value }))}
-                onBlur={() =>
-                  commitNumber('first', settings?.first_half_deadline_day ?? 20, (value) =>
+                onChange={(e) =>
+                  changeNumber('first', e.target.value, settings?.first_half_deadline_day ?? 20, (value) =>
                     onSaveSettings({ first_half_deadline_day: value }),
                   )
                 }
+                onBlur={flush}
               />
               <span>日まで</span>
             </div>
@@ -300,12 +352,12 @@ export default function ShiftAdmin({
                 min={1}
                 max={31}
                 value={draft.second ?? String(settings?.second_half_deadline_day ?? 5)}
-                onChange={(e) => setDraft((d) => ({ ...d, second: e.target.value }))}
-                onBlur={() =>
-                  commitNumber('second', settings?.second_half_deadline_day ?? 5, (value) =>
+                onChange={(e) =>
+                  changeNumber('second', e.target.value, settings?.second_half_deadline_day ?? 5, (value) =>
                     onSaveSettings({ second_half_deadline_day: value }),
                   )
                 }
+                onBlur={flush}
               />
               <span>日まで</span>
             </div>
