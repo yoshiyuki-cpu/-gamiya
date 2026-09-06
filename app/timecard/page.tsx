@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useReflections } from '@/hooks/useReflections'
 import { useTimecard } from '@/hooks/useTimecard'
 import type { StaffRow } from '@/hooks/useTimecard'
 import { todayLabelText } from '@/lib/checklist'
+import type { ReflectionKind } from '@/lib/supabase'
 import { breakMs, durationLabel, timeLabel, workedMs } from '@/lib/timecard'
+import ClockOutSheet from './_components/ClockOutSheet'
 import StaffManager from './_components/StaffManager'
 import TimecardAdmin from './_components/TimecardAdmin'
 
@@ -89,6 +92,37 @@ export default function TimecardPage() {
   const [tab, setTab] = useState<'punch' | 'admin'>('punch')
   const [now, setNow] = useState(() => Date.now())
 
+  // 退勤の前に「今日の良かった事・悪かった事」を1つ書いてもらう。
+  // その人が今日もう書いていれば、そのまま退勤できる。
+  // ふりかえりの表がまだ無い(SQL未実行)ときは、退勤を止めない。
+  const reflections = useReflections()
+  const [pendingOut, setPendingOut] = useState<StaffRow | null>(null)
+
+  const requestClockOut = useCallback(
+    (row: StaffRow) => {
+      const name = row.name.trim()
+      const wroteToday = reflections.today.some((r) => (r.staff_name ?? '').trim() === name)
+      if (wroteToday || reflections.loadError) {
+        void clockOut(row)
+        return
+      }
+      setPendingOut(row)
+    },
+    [reflections.today, reflections.loadError, clockOut],
+  )
+
+  const saveAndClockOut = useCallback(
+    async (kind: ReflectionKind, body: string) => {
+      if (!pendingOut) return { ok: false as const, error: 'もう一度「退勤」を押してください。' }
+      const result = await reflections.add(kind, body, pendingOut.name)
+      if (!result.ok) return result
+      setPendingOut(null)
+      await clockOut(pendingOut)
+      return result
+    },
+    [pendingOut, reflections, clockOut],
+  )
+
   // 勤務中の「実働」を伸ばしていく。分単位の表示なので30秒ごとで足りる。
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000)
@@ -151,7 +185,7 @@ export default function TimecardPage() {
                 busy={busy === row.name}
                 now={now}
                 onClockIn={() => clockIn(row.name)}
-                onClockOut={() => clockOut(row)}
+                onClockOut={() => requestClockOut(row)}
                 onStartBreak={() => startBreak(row)}
                 onEndBreak={() => endBreak(row)}
               />
@@ -176,6 +210,15 @@ export default function TimecardPage() {
       ) : (
         <TimecardAdmin />
       )}
+
+      {pendingOut ? (
+        <ClockOutSheet
+          staffName={pendingOut.name}
+          saving={reflections.saving || busy === pendingOut.name}
+          onSave={saveAndClockOut}
+          onClose={() => setPendingOut(null)}
+        />
+      ) : null}
     </div>
   )
 }
