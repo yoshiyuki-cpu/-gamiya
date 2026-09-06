@@ -1097,6 +1097,105 @@ body{
 }
 .sh-active-btn.off{ color: var(--muted); opacity:0.6; }
 
+/* 在庫と発注 */
+.st-banner{
+  display:flex; align-items:center; gap:10px;
+  background: rgba(181,80,74,0.14);
+  border:1px solid var(--danger);
+  border-radius:14px;
+  padding:12px 14px;
+  margin-bottom:14px;
+  color: var(--cream);
+  text-decoration:none;
+  font-size:13px; line-height:1.5;
+}
+.st-banner-badge{
+  flex-shrink:0;
+  background: var(--danger); color:#fff;
+  font-size:11px; font-weight:800; letter-spacing:0.04em;
+  padding:3px 8px; border-radius:20px;
+}
+.st-banner-text{ flex:1; min-width:0; }
+.st-banner-text strong{ color:#fff; }
+.st-banner-arrow{ flex-shrink:0; font-size:20px; color: var(--muted); }
+
+.st-group{
+  background: var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+  display:flex; flex-direction:column; gap:10px;
+}
+.st-group-head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+.st-group-name{ font-size:15px; font-weight:800; color: var(--cream); }
+.st-group-note{ font-size:11px; color: var(--muted); }
+.st-lines{ display:flex; flex-direction:column; gap:6px; }
+.st-line{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  font-size:13px; font-variant-numeric: tabular-nums;
+}
+.st-line-name{ font-weight:700; color: var(--cream); flex:1; min-width:0; }
+.st-line-now{ color: var(--danger); font-weight:700; white-space:nowrap; }
+.st-line-th{ color: var(--muted); font-weight:500; font-size:11px; margin-left:3px; }
+.st-line-arrow{ color: var(--muted); }
+.st-line-qty{ color: var(--gold); font-weight:800; white-space:nowrap; }
+.st-actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.st-btn{
+  min-height:44px;
+  display:inline-flex; align-items:center; justify-content:center;
+  background: var(--surface);
+  border:1px solid var(--line);
+  color: var(--cream);
+  font-size:13px; font-weight:700;
+  padding:8px 14px; border-radius:10px;
+  cursor:pointer; text-decoration:none;
+  font-family:'Noto Sans JP', sans-serif;
+  touch-action: manipulation;
+  white-space:nowrap;
+}
+.st-btn:active{ transform: scale(0.97); }
+.st-btn:disabled{ opacity:0.5; cursor:default; }
+/* メールは1段目に大きく1つ。コピー・発注したは2段目で半分ずつ。片手で押し分けやすい。 */
+.st-btn-mail{ background: var(--ember); border-color: var(--ember-glow); color:#fff2e6; flex:1 0 100%; font-size:14px; }
+.st-btn-done{ background:#1f6f4a; border-color:#2f9c6a; color:#e8fff2; }
+.st-actions > button{ flex:1 1 0; }
+.st-no-mail{ font-size:11px; color: var(--muted); flex:1 0 100%; min-width:0; }
+
+.st-rule{ border-bottom:1px solid var(--line); }
+.st-rule:last-child{ border-bottom:none; }
+.st-rule-head{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:10px 12px; cursor:pointer; min-height:44px;
+}
+.st-rule-head:hover{ background: rgba(255,255,255,0.02); }
+.st-rule-qty{ font-size:12px; color: var(--cream); font-variant-numeric: tabular-nums; white-space:nowrap; }
+.st-rule-old{ color: var(--muted); font-size:10.5px; margin-left:3px; }
+.st-rule-meta{ font-size:11.5px; color: var(--muted); white-space:nowrap; }
+.st-rule-below .st-rule-qty{ color: var(--danger); font-weight:700; }
+.st-rule-below{ background: rgba(181,80,74,0.08); }
+.st-rule-off .visit-name{ color: var(--muted); text-decoration:line-through; }
+.st-form{ padding:0 12px 12px; display:flex; flex-direction:column; gap:10px; }
+.st-form-actions{ display:flex; flex-direction:column; gap:6px; }
+.st-hint{ padding:10px 12px; font-size:11.5px; color: var(--muted); border-top:1px solid var(--line); }
+
+.st-supplier{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:10px 12px; border-bottom:1px solid var(--line);
+}
+.st-supplier:last-child{ border-bottom:none; }
+.st-supplier-mail{ font-size:12px; color: var(--gold); }
+.st-supplier-note{ font-size:11px; color: var(--muted); width:100%; }
+
+.st-history{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:9px 12px; border-bottom:1px solid var(--line);
+  font-size:12.5px;
+}
+.st-history:last-child{ border-bottom:none; }
+.st-history-date{ color: var(--gold); font-variant-numeric: tabular-nums; flex-shrink:0; }
+.st-history-qty{ color: var(--cream); font-weight:700; white-space:nowrap; }
+.st-history-sup, .st-history-staff{ color: var(--muted); font-size:11px; }
+
 /* Guest ratings: pull today's reservations into the ledger */
 .pending-row{
   display:flex; align-items:center; gap:8px;
