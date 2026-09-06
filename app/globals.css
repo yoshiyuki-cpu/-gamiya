@@ -707,6 +707,42 @@ body{
 }
 .rv-nudge{ display:flex; gap:8px; }
 
+/* 予約表: 日付を選ぶカレンダー */
+.rv-cal-sheet{ padding-bottom:16px; }
+.rv-cal-nav{ display:flex; align-items:center; justify-content:center; gap:14px; padding:12px 16px 6px; }
+.rv-cal-month{ font-size:15px; font-weight:700; color: var(--cream); font-variant-numeric: tabular-nums; }
+.rv-cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:0 12px; }
+.rv-cal-head{ padding-bottom:4px; }
+.rv-cal-wd{ text-align:center; font-size:10.5px; font-weight:700; color: var(--muted); padding:4px 0; }
+.rv-sun{ color:#ff8f7a; }
+.rv-sat{ color:#7ab8ff; }
+.rv-cal-blank{ min-height:44px; }
+.rv-cal-day{
+  min-height:44px;
+  background: var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:4px 2px;
+  cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  touch-action: manipulation;
+}
+.rv-cal-day:active{ transform: scale(0.96); }
+.rv-cal-num{ font-size:13px; font-weight:700; color: var(--cream); font-variant-numeric: tabular-nums; line-height:1.2; }
+.rv-cal-count{ font-size:9.5px; font-weight:700; color: var(--gold); line-height:1.2; min-height:11px; }
+/* 予約が入っている日は枠を濃くする。数字だけだと月全体の混み具合が読めない。 */
+.rv-cal-has{ background: rgba(232,98,44,0.16); border-color: var(--ember); }
+.rv-cal-today{ box-shadow: inset 0 0 0 1px var(--gold); }
+.rv-cal-picked{ background: var(--ember); border-color: var(--ember-glow); }
+.rv-cal-picked .rv-cal-num, .rv-cal-picked .rv-cal-count{ color:#fff2e6; }
+.rv-cal-foot{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  /* 下のタブバー(約64px)に隠れないよう、その分だけ空けておく。 */
+  padding:14px 16px calc(64px + env(safe-area-inset-bottom, 0px));
+}
+.rv-cal-note{ font-size:11px; color: var(--muted); flex:1; min-width:0; }
+
 /* 予約表: 空き状況の帯 */
 .rv-free-strip{
   display:grid; grid-template-columns:repeat(9,1fr); gap:2px;
