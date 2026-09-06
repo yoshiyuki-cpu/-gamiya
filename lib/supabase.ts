@@ -294,6 +294,8 @@ export type Ingredient = {
   unit: string
   pack_qty: number
   pack_price: number
+  // 歩留まり(%)。掃除して使える割合。100 なら全部使える
+  yield_rate: number
   note: string | null
   active: boolean
   created_at: string

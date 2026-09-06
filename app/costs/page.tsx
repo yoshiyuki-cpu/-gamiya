@@ -3,7 +3,21 @@
 import { useState } from 'react'
 import { useCosts } from '@/hooks/useCosts'
 import type { CostResult } from '@/hooks/useCosts'
-import { DEFAULT_TARGET_RATE, INGREDIENT_CATEGORIES, UNITS, groupIngredients, parseNumber, percent, suggestedPrice, unitPriceLabel, usageCount, yen } from '@/lib/costs'
+import {
+  DEFAULT_TARGET_RATE,
+  INGREDIENT_CATEGORIES,
+  UNITS,
+  groupIngredients,
+  parseNumber,
+  percent,
+  suggestedPrice,
+  unitPrice,
+  unitPriceLabel,
+  usableQty,
+  usageCount,
+  yen,
+  yieldOf,
+} from '@/lib/costs'
 import IngredientOptions from './_components/IngredientOptions'
 import type { MenuCost } from '@/lib/costs'
 import { RECIPE_CATEGORIES } from '@/lib/recipes'
@@ -13,6 +27,75 @@ import TrialPanel from './_components/TrialPanel'
 export const dynamic = 'force-dynamic'
 
 type Tab = 'menu' | 'ingredients' | 'trial'
+
+/** 歩留まり(%)の文字を 1〜100 の数に。空なら 100(全部使える)。おかしければ null。 */
+function parseYield(raw: string): number | null {
+  if (raw.trim() === '') return 100
+  const y = parseNumber(raw)
+  return y !== null && y > 0 && y <= 100 ? y : null
+}
+
+function fmtQty(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1)
+}
+
+/**
+ * 歩留まりの入力。「使える量」と「%」のどちらで入れてもよく、片方を変えると
+ * もう片方も変わる。厨房では「1kg買って掃除したら800g残った」と考えるため。
+ */
+function YieldFields({
+  packQty,
+  unit,
+  yieldText,
+  onChange,
+}: {
+  packQty: number | null
+  unit: string
+  yieldText: string
+  onChange: (yieldText: string) => void
+}) {
+  const y = parseYield(yieldText)
+  const usable = packQty !== null && y !== null ? packQty * (y / 100) : null
+  return (
+    <div className="cs-yield">
+      <div className="rv-row-2">
+        <label className="rv-field">
+          <span className="satisfaction-label">掃除して使える量({unit})</span>
+          <input
+            className="satisfaction-input"
+            inputMode="decimal"
+            placeholder={packQty !== null ? fmtQty(packQty) : '800'}
+            value={usable !== null ? fmtQty(usable) : ''}
+            onChange={(e) => {
+              const u = parseNumber(e.target.value)
+              if (packQty && u !== null && u > 0 && u <= packQty) onChange(fmtQty((u / packQty) * 100))
+              else if (e.target.value.trim() === '') onChange('')
+            }}
+            aria-label="使える量"
+          />
+        </label>
+        <label className="rv-field">
+          <span className="satisfaction-label">歩留まり(%)</span>
+          <input
+            className="satisfaction-input"
+            inputMode="decimal"
+            placeholder="100"
+            value={yieldText}
+            onChange={(e) => onChange(e.target.value)}
+            aria-label="歩留まり"
+          />
+        </label>
+      </div>
+      <div className="cs-yield-note">
+        {y === null
+          ? '歩留まりは 1〜100 で入れてください。'
+          : y < 100
+            ? `捨てる${100 - y}%の値段も、使う分に乗せて材料費にします。`
+            : '全部使えるなら、そのままで大丈夫です。'}
+      </div>
+    </div>
+  )
+}
 
 /** 1つのメニュー。開くと売価・目標・材料を直せる。 */
 function MenuRow({
@@ -173,16 +256,19 @@ function IngredientRow({
   const [category, setCategory] = useState(ing.category ?? 'other')
   const [qty, setQty] = useState(String(ing.pack_qty))
   const [priceText, setPriceText] = useState(String(ing.pack_price))
+  const [yieldText, setYieldText] = useState(yieldOf(ing) === 100 ? '' : fmtQty(yieldOf(ing)))
   const [error, setError] = useState<string | null>(null)
 
   const save = async () => {
     const q = parseNumber(qty)
     const p = parseNumber(priceText)
+    const y = parseYield(yieldText)
     if (!name.trim()) return setError('名前を入れてください。')
     if (q === null || q <= 0) return setError('買う量は 0 より大きい数字で入れてください。')
     if (p === null) return setError('値段は数字で入れてください。')
+    if (y === null) return setError('歩留まりは 1〜100 で入れてください。')
     setError(null)
-    const r = await onUpdate({ name: name.trim(), category, unit, pack_qty: q, pack_price: p })
+    const r = await onUpdate({ name: name.trim(), category, unit, pack_qty: q, pack_price: p, yield_rate: y })
     if (!r.ok) setError(r.error)
     else setOpen(false)
   }
@@ -196,7 +282,10 @@ function IngredientRow({
             {ing.pack_qty}
             {ing.unit} {yen(ing.pack_price)}
           </span>
-          <span className="cs-cost">{usedIn > 0 ? `${usedIn}品で使用` : '未使用'}</span>
+          <span className="cs-cost">
+            {yieldOf(ing) < 100 ? `歩留まり${fmtQty(yieldOf(ing))}%(使える${fmtQty(usableQty(ing))}${ing.unit}) ・ ` : ''}
+            {usedIn > 0 ? `${usedIn}品で使用` : '未使用'}
+          </span>
         </span>
         <span className="cs-rate">{unitPriceLabel(ing)}</span>
         <span className={`category-chevron${open ? '' : ' collapsed'}`} aria-hidden="true">
@@ -241,6 +330,19 @@ function IngredientRow({
               <input className="satisfaction-input" inputMode="numeric" value={priceText} onChange={(e) => setPriceText(e.target.value)} />
             </label>
           </div>
+          <YieldFields packQty={parseNumber(qty)} unit={unit} yieldText={yieldText} onChange={setYieldText} />
+          {(() => {
+            const q = parseNumber(qty)
+            const p = parseNumber(priceText)
+            const y = parseYield(yieldText)
+            if (q === null || q <= 0 || p === null || y === null) return null
+            const u = unitPrice({ pack_qty: q, pack_price: p, yield_rate: y })
+            return (
+              <div className="cs-yield-result">
+                材料費の単価: <strong>{u >= 10 ? Math.round(u).toLocaleString('ja-JP') : u.toFixed(u >= 1 ? 2 : 3)}円/{unit}</strong>
+              </div>
+            )
+          })()}
           {error ? <div className="recorder-error">{error}</div> : null}
           <div className="st-form-actions">
             <button type="button" className="next-guest-btn" disabled={saving} onClick={() => void save()}>
@@ -275,6 +377,7 @@ export default function CostsPage() {
   const [ingName, setIngName] = useState('')
   const [ingUnit, setIngUnit] = useState<string>('g')
   const [ingCategory, setIngCategory] = useState<string>('meat')
+  const [ingYield, setIngYield] = useState('')
   const [ingQty, setIngQty] = useState('')
   const [ingPrice, setIngPrice] = useState('')
 
@@ -296,8 +399,11 @@ export default function CostsPage() {
     if (!ingName.trim()) return setError('材料の名前を入れてください。')
     if (q === null || q <= 0) return setError('買う量は 0 より大きい数字で入れてください。')
     if (p === null) return setError('値段は数字で入れてください。')
-    const r = await costs.addIngredient({ name: ingName.trim(), category: ingCategory, unit: ingUnit, pack_qty: q, pack_price: p })
+    const y = parseYield(ingYield)
+    if (y === null) return setError('歩留まりは 1〜100 で入れてください。')
+    const r = await costs.addIngredient({ name: ingName.trim(), category: ingCategory, unit: ingUnit, pack_qty: q, pack_price: p, yield_rate: y })
     if (!r.ok) return setError(r.error)
+    setIngYield('')
     setIngName('')
     setIngQty('')
     setIngPrice('')
@@ -479,6 +585,7 @@ export default function CostsPage() {
                 <input className="satisfaction-input" inputMode="numeric" placeholder="3800" value={ingPrice} onChange={(e) => setIngPrice(e.target.value)} />
               </label>
             </div>
+            <YieldFields packQty={parseNumber(ingQty)} unit={ingUnit} yieldText={ingYield} onChange={setIngYield} />
             <button type="button" className="next-guest-btn" disabled={costs.saving} onClick={() => void submitIngredient()}>
               材料を足す
             </button>

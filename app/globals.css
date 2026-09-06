@@ -1924,3 +1924,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
 .cs-table-price{ font-weight:700; }
 .cs-table-profit{ margin-left:auto; font-size:11.5px; color: var(--muted); }
 .cs-register{ display:flex; flex-direction:column; gap:10px; padding-top:6px; border-top:1px solid var(--line); }
+
+/* 原価: 歩留まり */
+.cs-yield{ display:flex; flex-direction:column; gap:4px; }
+.cs-yield-note{ font-size:11px; color: var(--muted); }
+.cs-yield-result{ font-size:13px; color: var(--cream); }
+.cs-yield-result strong{ color: var(--gold); }
