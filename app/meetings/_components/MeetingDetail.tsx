@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { MEETING_CATEGORIES } from '@/lib/meetings'
+import { MEETING_CATEGORY_LABEL } from '@/lib/meetings'
 import type { Meeting } from '@/lib/supabase'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -34,7 +34,7 @@ export default function MeetingDetail({
   const [actionItems, setActionItems] = useState(meeting.summary_action_items ?? '')
 
   const processing = meeting.status === 'transcribing' || meeting.status === 'summarizing'
-  const categoryName = MEETING_CATEGORIES.find((c) => c.id === meeting.category)?.name ?? meeting.category
+  const categoryName = MEETING_CATEGORY_LABEL[meeting.category] ?? meeting.category
 
   return (
     <div className="meeting-detail">

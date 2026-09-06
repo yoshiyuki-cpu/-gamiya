@@ -70,7 +70,7 @@ export default function MeetingsPage() {
           <div>
             <div className="eyebrow">GAMIYA</div>
             <h1 className="title">議事録</h1>
-            <div className="subtitle">朝礼・会議・日々の振り返りを記録します</div>
+            <div className="subtitle">朝礼・会議を記録します。良かった事・悪かった事は「日報」から</div>
           </div>
         </div>
       </div>

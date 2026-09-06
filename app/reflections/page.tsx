@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { SUMMARY_DAYS, useReflections } from '@/hooks/useReflections'
+import { SUMMARY_DAYS, legacyNoteText, useLegacyDailyNotes, useReflections } from '@/hooks/useReflections'
 import type { Reflection } from '@/lib/supabase'
 import { KIND_ICON, KIND_LABEL, byStaff, dateLabel, groupByDate, isOpen } from '@/lib/reflections'
 import { recentBusinessDayKeys } from '@/lib/checklist'
@@ -172,9 +172,17 @@ export default function ReflectionsPage() {
   const { loading, saving, rows, counts, loadError, missingTable, resolve, reopen, editBody, hide } = useReflections()
   const [view, setView] = useState<View>('open')
 
+  // 議事録に残っている昔の「良かった事・悪かった事」も、日ごとの中に読むだけで並べる。
+  const legacy = useLegacyDailyNotes()
+
   const sinceKey = recentBusinessDayKeys(SUMMARY_DAYS)[0]
   const openRows = useMemo(() => rows.filter(isOpen).sort((a, b) => (a.note_date < b.note_date ? 1 : a.note_date > b.note_date ? -1 : b.id - a.id)), [rows])
-  const groups = useMemo(() => groupByDate(rows), [rows])
+  const groups = useMemo(() => {
+    const base = groupByDate(rows)
+    const dates = new Set(base.map((g) => g.date))
+    const extra = [...new Set(legacy.map((n) => n.meeting_date))].filter((d) => !dates.has(d)).map((date) => ({ date, rows: [] as typeof rows }))
+    return [...base, ...extra].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+  }, [rows, legacy])
   const staff = useMemo(() => byStaff(rows, sinceKey), [rows, sinceKey])
 
   if (loading) {
@@ -254,6 +262,17 @@ export default function ReflectionsPage() {
                 {g.rows.map((r) => (
                   <Row key={r.id} row={r} saving={saving} onResolve={resolve} onReopen={reopen} onEdit={editBody} onHide={hide} />
                 ))}
+                {legacy
+                  .filter((n) => n.meeting_date === g.date)
+                  .map((n) => (
+                    <div key={`m${n.id}`} className="rf-legacy">
+                      <span className="rf-chip rf-chip-legacy">議</span>
+                      <span className="rf-body">
+                        {legacyNoteText(n)}
+                        <span className="rf-legacy-tag">議事録で書かれたもの(移す前の記録)</span>
+                      </span>
+                    </div>
+                  ))}
               </div>
             </div>
           ))
