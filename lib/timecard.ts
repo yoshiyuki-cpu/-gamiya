@@ -1,7 +1,5 @@
 import type { TimeBreak, TimeEntry } from './supabase'
-
-// 営業日の切り替え時刻。lib/checklist.ts と揃えている。
-const RESET_HOUR = 5
+import { RESET_HOUR } from './businessDay'
 
 export type StaffState = 'off' | 'working' | 'onBreak'
 
@@ -46,7 +44,7 @@ export function stateOf(entry: TimeEntry | undefined, breaks: TimeBreak[]): Staf
 
 /**
  * 営業日と「HH:MM」から実際の日時を組み立てる。
- * 5時より前の時刻は翌日の出来事として扱う(17:00〜翌1:00の勤務があるため)。
+ * 昼12時より前の時刻は翌日の出来事として扱う(17:00〜翌1:00の勤務や、翌朝の片付けがあるため)。
  * これがないと、退勤を 01:00 に直したときに出勤より前になってしまう。
  */
 export function composeAt(workDate: string, hhmm: string): string | null {

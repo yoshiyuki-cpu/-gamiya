@@ -306,7 +306,7 @@ export default function GuestsPage() {
 
       <div className="footer">
         <div className="footer-note">
-          組の登録・評価は全端末で共有されます。記録は営業日(朝5時区切り)ごとにこのページに表示されます。
+          組の登録・評価は全端末で共有されます。記録は営業日(昼12時区切り)ごとにこのページに表示されます。
         </div>
       </div>
     </div>

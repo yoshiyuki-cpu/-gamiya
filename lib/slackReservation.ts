@@ -15,8 +15,7 @@ import {
   sortSeats,
   type SeatHold,
 } from './reservations'
-
-const RESET_HOUR = 5
+import { RESET_HOUR } from './businessDay'
 
 export type ParsedReservation = {
   reserve_date: string
@@ -56,7 +55,7 @@ function keyOf(y: number, m: number, d: number): string {
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
-/** 営業日(朝5時区切り)の今日。深夜1時の「今日」は前日の営業。 */
+/** 営業日(昼12時区切り)の今日。深夜1時や朝9時の「今日」は前日の営業。 */
 export function businessTodayKey(now = new Date()): string {
   const j = jstNow(now)
   const key = keyOf(j.y, j.m, j.d)

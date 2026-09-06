@@ -1,3 +1,5 @@
+import { RESET_HOUR } from './businessDay'
+
 // 予約表の時間とお席の決まりごと。
 // 時間は「17:00から15分刻みで何コマ目か」という整数で持つ。
 // 日付や時刻の型を持たせるより、重なりの判定も前後のずらしも単純になる。
@@ -118,8 +120,8 @@ export const LATE_AFTER_SLOTS = 1 // 15分
 
 /** 今が何コマ目か。営業時間の外なら null。 */
 export function currentSlot(now = new Date()): number | null {
-  // 深夜は前日の営業として数える(26時制)。
-  const hour = now.getHours() < OPEN_HOUR - 12 ? now.getHours() + 24 : now.getHours()
+  // 深夜〜昼前は前日の営業として数える(26時制)。営業時間の外なら下で null になる。
+  const hour = now.getHours() < RESET_HOUR ? now.getHours() + 24 : now.getHours()
   const minutes = (hour - OPEN_HOUR) * 60 + now.getMinutes()
   const slot = Math.floor(minutes / SLOT_MINUTES)
   return slot >= 0 && slot < TOTAL_SLOTS ? slot : null

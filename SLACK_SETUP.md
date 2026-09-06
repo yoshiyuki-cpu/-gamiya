@@ -60,5 +60,5 @@ Vercel → gamiya → Settings → Environment Variables（Production）
 ## 動かないとき
 - 何も返ってこない → Vercel の Logs で `/api/slack/events` を見る。`SLACK_SIGNING_SECRET が未設定` なら 3 をやり直す
 - 「Request URL」が Verified にならない → 3 の環境変数を入れて Redeploy してから 4 をやる
-- ✅ は付くのに予約表に無い → 予約表は「営業日」で日付を見る。深夜0〜5時の投稿は前日扱い
+- ✅ は付くのに予約表に無い → 予約表は「営業日」で日付を見る。深夜0時〜昼11:59の投稿は前日扱い
 - Bot がチャンネルの投稿を読めない → 5 の招待を忘れている

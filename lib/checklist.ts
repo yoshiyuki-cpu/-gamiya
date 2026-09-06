@@ -1,8 +1,7 @@
 import type { DailyRecord, Item } from './supabase'
+import { RESET_HOUR } from './businessDay'
 
-// The business day rolls over at 5am, not midnight, since the store operates
-// past midnight — a 2am check-in still belongs to the previous calendar day's sheet.
-const RESET_HOUR = 5
+// 営業日は昼12時で切り替わる(lib/businessDay.ts)。深夜も翌朝も、前日の営業として扱う。
 
 function businessDate(): Date {
   const d = new Date()
