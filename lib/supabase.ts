@@ -84,6 +84,9 @@ export type Reservation = {
   seated_at: string | null
   left_at: string | null
   is_walk_in: boolean
+  // Slackの投稿から入れた予約は、元の投稿と紐付く(取消の返信で探すため)。
+  slack_channel: string | null
+  slack_ts: string | null
   created_at: string
   updated_at: string
 }
