@@ -1,6 +1,7 @@
 'use client'
 
 import { useDailyReports } from '@/hooks/useDailyReports'
+import ReflectionCard from '../_components/ReflectionCard'
 import ReportCheckCard from '../_components/ReportCheckCard'
 import XPostCard from '../_components/XPostCard'
 
@@ -44,6 +45,8 @@ export default function ReportsPage() {
       <ReportCheckCard />
 
       <XPostCard />
+
+      <ReflectionCard />
 
       <div className="meeting-list">
         {reports.length === 0 ? (

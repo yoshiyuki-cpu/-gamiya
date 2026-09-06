@@ -28,6 +28,7 @@ const PRIMARY: NavItem[] = [
 const MORE: NavItem[] = [
   { href: '/shifts', icon: '🗓', label: 'シフト', desc: '休み希望・シフト表' },
   { href: '/stock', icon: '📦', label: '発注', desc: '規定数を下回った品目' },
+  { href: '/reflections', icon: '📝', label: 'ふりかえり', desc: '良かった事・悪かった事' },
   { href: '/orders', icon: '🍖', label: '壁紙注文', desc: '壁紙メニューの注文' },
   { href: '/meetings', icon: '🎙', label: '議事録', desc: '朝礼・会議の記録' },
   { href: '/recipes', icon: '📖', label: 'レシピ', desc: '肉・サイド・ドリンク' },
