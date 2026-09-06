@@ -65,8 +65,7 @@ export async function POST(req: NextRequest) {
   const reflectionLines = (reflections ?? []).map((r) => {
     const label = r.kind === 'good' ? '良かった事' : '悪かった事'
     const who = r.staff_name ? `(${r.staff_name})` : ''
-    const state = r.kind === 'bad' ? (r.resolved_at ? '[直した]' : '[未対応]') : ''
-    return `- [${label}]${state} ${r.body}${who}`
+    return `- [${label}] ${r.body}${who}`
   })
 
   const context =

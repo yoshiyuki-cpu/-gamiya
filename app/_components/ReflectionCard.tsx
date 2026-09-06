@@ -29,7 +29,7 @@ function rememberName(name: string) {
  * 良かった／悪かった を押す → 1行書く → 記録する、の3タップ。
  */
 export default function ReflectionCard() {
-  const { loading, saving, today, counts, loadError, add } = useReflections()
+  const { loading, saving, today, loadError, add } = useReflections()
   const [kind, setKind] = useState<ReflectionKind | null>(null)
   const [body, setBody] = useState('')
   const [name, setName] = useState('')
@@ -73,7 +73,6 @@ export default function ReflectionCard() {
             気づいたときに1行 ・ 今日 👍{goodToday} ⚠{badToday}
           </div>
         </div>
-        {counts.open > 0 ? <span className="x-status rf-open-badge">未対応{counts.open}</span> : null}
       </div>
 
       <div className="satisfaction-body">
@@ -143,7 +142,7 @@ export default function ReflectionCard() {
         ) : null}
 
         <Link href="/reflections" className="rf-more-link">
-          これまでの一覧{counts.open > 0 ? `・未対応 ${counts.open}件` : ''} ›
+          これまでの一覧 ›
         </Link>
       </div>
     </div>
