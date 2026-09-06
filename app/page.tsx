@@ -6,6 +6,7 @@ import CategoryCard from './_components/CategoryCard'
 import DoneBanner from './_components/DoneBanner'
 import Footer from './_components/Footer'
 import Header from './_components/Header'
+import StockBanner from './_components/StockBanner'
 
 // This page's entire content comes from a live Supabase read (categories,
 // items, today's records) plus per-device localStorage — there is nothing
@@ -69,6 +70,8 @@ export default function Home() {
       />
 
       {!editMode ? <DoneBanner show={allDone} /> : null}
+      {/* 在庫を数えた結果を、数えたその画面に出す。 */}
+      {!editMode ? <StockBanner /> : null}
 
       <div id="categories">
         {categories.map((category) => (

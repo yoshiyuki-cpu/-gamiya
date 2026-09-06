@@ -246,6 +246,60 @@ export type GuestSatisfactionRecord = {
   updated_at: string
 }
 
+// ---- 在庫と発注 ----
+// 在庫の数そのものは daily_records.quantity_value(開店前チェックの数量入力)にある。
+
+export type Supplier = {
+  id: number
+  name: string
+  email: string | null
+  note: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+/** 開店前チェックの数量入力の項目に付ける、発注の決めごと。 */
+export type StockRule = {
+  id: number
+  item_id: number
+  supplier_id: number | null
+  threshold: number
+  order_qty: number
+  unit: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type StockOrder = {
+  id: number
+  item_id: number
+  supplier_id: number | null
+  qty: number
+  unit: string | null
+  staff_name: string | null
+  note: string | null
+  ordered_at: string
+}
+
+export type ReflectionKind = 'good' | 'bad'
+
+/** スタッフが書いた「良かった事」「悪かった事」1つ。 */
+export type Reflection = {
+  id: number
+  note_date: string
+  kind: ReflectionKind
+  body: string
+  staff_name: string | null
+  resolved_at: string | null
+  resolved_by: string | null
+  resolve_note: string | null
+  hidden: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type MeetingStatus = 'recorded' | 'transcribing' | 'transcribed' | 'summarizing' | 'done' | 'error'
 
 export type Meeting = {

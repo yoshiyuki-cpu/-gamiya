@@ -13,6 +13,10 @@
       "schedule": "30 8 * * *"
     },
     {
+      "path": "/api/notify-stock",
+      "schedule": "15 8 * * *"
+    },
+    {
       "path": "/api/notify-shift",
       "schedule": "0 6 * * *"
     },
