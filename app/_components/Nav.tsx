@@ -32,6 +32,7 @@ const MORE: NavItem[] = [
   { href: '/orders', icon: '🍖', label: '壁紙注文', desc: '壁紙メニューの注文' },
   { href: '/meetings', icon: '🎙', label: '議事録', desc: '朝礼・会議の記録' },
   { href: '/recipes', icon: '📖', label: 'レシピ', desc: '肉・サイド・ドリンク' },
+  { href: '/costs', icon: '💴', label: '原価', desc: 'メニューごとの原価率' },
   { href: '/assistant', icon: '💬', label: 'AI相談', desc: '店のことを質問' },
 ]
 
