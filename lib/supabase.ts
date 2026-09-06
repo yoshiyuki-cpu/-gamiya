@@ -280,6 +280,23 @@ export type StockOrder = {
   ordered_at: string
 }
 
+export type ReflectionKind = 'good' | 'bad'
+
+/** スタッフが書いた「良かった事」「悪かった事」1つ。 */
+export type Reflection = {
+  id: number
+  note_date: string
+  kind: ReflectionKind
+  body: string
+  staff_name: string | null
+  resolved_at: string | null
+  resolved_by: string | null
+  resolve_note: string | null
+  hidden: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type MeetingStatus = 'recorded' | 'transcribing' | 'transcribed' | 'summarizing' | 'done' | 'error'
 
 export type Meeting = {

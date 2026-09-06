@@ -1782,3 +1782,60 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
   border-radius:10px; padding:10px; font-size:13px; cursor:pointer;
 }
 .meeting-delete-btn:hover{ border-color: var(--danger); background: rgba(181,80,74,0.12); }
+
+/* ふりかえり(良かった事・悪かった事) */
+.rf-open-badge{ color: var(--danger); }
+.rf-kind-btn{ min-height:48px; font-size:14px; }
+.rf-kind-good.active{ border-color:#2f9c6a; color:#9fe3bf; background: rgba(31,111,74,0.25); }
+.rf-kind-bad.active{ border-color: var(--danger); color:#ffb3ad; background: rgba(181,80,74,0.2); }
+.rf-name-row{ display:flex; align-items:center; gap:10px; }
+.rf-name-row .satisfaction-label{ flex-shrink:0; }
+.rf-row{ display:flex; gap:10px; align-items:flex-start; }
+.rf-chip{
+  flex-shrink:0; width:26px; height:26px; border-radius:8px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:14px; line-height:1;
+  background: var(--surface-2); border:1px solid var(--line);
+}
+.rf-chip-good{ background: rgba(31,111,74,0.25); border-color:#2f9c6a; }
+.rf-chip-bad{ background: rgba(181,80,74,0.2); border-color: var(--danger); }
+.rf-body{ font-size:13px; color: var(--cream); line-height:1.5; min-width:0; white-space:pre-wrap; word-break:break-word; }
+.rf-who{ display:inline-block; margin-left:8px; font-size:11px; color: var(--muted); white-space:nowrap; }
+.rf-resolved{ display:block; margin-top:3px; font-size:11.5px; color:#9fe3bf; }
+.rf-more-link{
+  display:block; text-align:right; font-size:12.5px; font-weight:700;
+  color: var(--ember-glow); text-decoration:none; padding-top:2px;
+}
+.rf-list{ display:flex; flex-direction:column; }
+.rf-dated{ border-bottom:1px solid var(--line); }
+.rf-dated:last-child{ border-bottom:none; }
+.rf-date{ font-size:11.5px; color: var(--gold); padding: 10px 16px 0; }
+.rf-item{ border-bottom:1px solid var(--line); }
+.rf-item:last-child{ border-bottom:none; }
+.rf-dated .rf-item{ border-bottom:none; }
+.rf-item-open{ background: rgba(181,80,74,0.06); }
+.rf-item-main{
+  width:100%; display:flex; gap:10px; align-items:flex-start;
+  padding: 12px 16px; min-height:48px;
+  background:none; border:none; text-align:left; cursor:pointer;
+  color: inherit; font-family:'Noto Sans JP', sans-serif;
+  touch-action: manipulation;
+}
+.rf-item-main .rf-body{ flex:1; }
+.rf-item-arrow{ flex-shrink:0; font-size:10px; color: var(--muted); padding-top:6px; }
+.rf-item-actions{ padding: 0 16px 14px; display:flex; flex-direction:column; gap:10px; }
+.rf-action-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.rf-action-row .next-guest-btn{ flex:1; }
+.rf-date-badge{ font-size:15px; }
+.rf-staff{ display:flex; flex-direction:column; }
+.rf-staff-row{
+  display:flex; align-items:center; gap:12px;
+  padding: 12px 16px; border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.rf-staff-row:last-child{ border-bottom:none; }
+.rf-staff-name{ flex:1; font-weight:700; color: var(--cream); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rf-staff-count{ white-space:nowrap; font-variant-numeric: tabular-nums; color: var(--cream); }
+.rf-staff-label{ font-size:10.5px; color: var(--muted); }
+.rf-foot{ font-size:12px; color: var(--muted); line-height:1.7; padding: 4px 6px 0; }
+.rf-foot a{ color: var(--ember-glow); font-weight:700; text-decoration:none; }
