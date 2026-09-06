@@ -112,6 +112,38 @@ export function parseNumber(raw: string): number | null {
 
 export const UNITS = ['g', 'ml', '個', '枚', '本', '玉', '束', '切れ', '人前', 'kg', 'L'] as const
 
+// ---- 試算(新メニューを考えるとき) ----
+// まだ登録していないメニューでも、材料と量を並べて原価を出し、売価をいくらにすると何%かを見る。
+
+export type TrialLine = { ingredient: IngredientLike; qty: number }
+
+export type TrialResult = {
+  lines: { ingredient: IngredientLike; qty: number; unit: number; cost: number }[]
+  cost: number
+}
+
+export function trialCost(lines: TrialLine[]): TrialResult {
+  const rows = lines.map((l) => {
+    const unit = unitPrice(l.ingredient)
+    return { ingredient: l.ingredient, qty: l.qty, unit, cost: unit * l.qty }
+  })
+  return { lines: rows, cost: rows.reduce((s, r) => s + r.cost, 0) }
+}
+
+/** 売価に対する原価率(%)。売価が0以下なら null。 */
+export function rateAt(cost: number, price: number | null): number | null {
+  if (price === null || price <= 0) return null
+  return (cost / price) * 100
+}
+
+export const TRIAL_RATES = [25, 30, 35, 40, 45] as const
+
+/** 「原価率30%なら売価いくら」を目安の率ごとに並べる。 */
+export function priceTable(cost: number, rates: readonly number[] = TRIAL_RATES): { rate: number; price: number }[] {
+  if (cost <= 0) return []
+  return rates.map((rate) => ({ rate, price: suggestedPrice(cost, rate) ?? 0 }))
+}
+
 /** 材料が使われているメニューの数(消す前の確認に使う)。 */
 export function usageCount(ingredientId: number, lines: MenuLineLike[]): number {
   return new Set(lines.filter((l) => l.ingredient_id === ingredientId).map((l) => l.menu_item_id)).size
