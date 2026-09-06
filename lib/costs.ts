@@ -32,7 +32,20 @@ export type IngredientLike = {
   unit: string // g / ml / 個 / 枚 / 本 …
   pack_qty: number // 買う量(1000g など)
   pack_price: number // その値段(円)
+  /** 歩留まり(%)。1000g買って掃除後に使えるのが800gなら80。無ければ100。 */
+  yield_rate?: number | null
   active: boolean
+}
+
+/** 歩留まり(%)。未設定・おかしい値は 100 とみなす。 */
+export function yieldOf(ing: Pick<IngredientLike, 'yield_rate'>): number {
+  const y = ing.yield_rate
+  return y != null && Number.isFinite(y) && y > 0 && y <= 100 ? y : 100
+}
+
+/** 買った量のうち、実際に使える量(歩留まりを掛けた後)。 */
+export function usableQty(ing: Pick<IngredientLike, 'pack_qty' | 'yield_rate'>): number {
+  return ing.pack_qty * (yieldOf(ing) / 100)
 }
 
 export type MenuItemLike = {
@@ -50,10 +63,15 @@ export type MenuLineLike = {
   qty: number // 1皿に使う量(材料の単位で)
 }
 
-/** 材料の単位あたりの値段(円/g など)。買う量が0なら 0。 */
-export function unitPrice(ing: Pick<IngredientLike, 'pack_qty' | 'pack_price'>): number {
-  if (!ing.pack_qty || ing.pack_qty <= 0) return 0
-  return ing.pack_price / ing.pack_qty
+/**
+ * 材料の単位あたりの値段(円/g など)。買う量が0なら 0。
+ * 歩留まりがあれば「使える量」で割る。1000g 3,800円 で歩留まり80% → 3800 / 800 = 4.75円/g。
+ * 捨てる分の値段も、使う分に乗せて材料費にするため。
+ */
+export function unitPrice(ing: Pick<IngredientLike, 'pack_qty' | 'pack_price' | 'yield_rate'>): number {
+  const usable = usableQty(ing)
+  if (!usable || usable <= 0) return 0
+  return ing.pack_price / usable
 }
 
 /** 「1000g 3,800円 → 3.8円/g」の右側。 */

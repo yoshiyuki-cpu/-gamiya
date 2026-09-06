@@ -10,3 +10,8 @@
 
 -- meat / vegetable / seafood / seasoning / other。今ある材料は「その他」になる。
 alter table ingredients add column if not exists category text not null default 'other';
+
+-- 歩留まり(%)。1000g買って掃除後に使えるのが800gなら 80。
+-- 単価は「使える量」で割るので、捨てる分の値段も材料費に乗る。今ある材料は100(全部使える)。
+alter table ingredients add column if not exists yield_rate numeric not null default 100
+  check (yield_rate > 0 and yield_rate <= 100);

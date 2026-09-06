@@ -22,8 +22,8 @@ function describeError(error: DbError): string {
   if (error?.code === '42501' || /permission denied/i.test(message)) {
     return 'データベースの権限が足りません。supabase-migration-costs.sql の grant の行を実行してください。'
   }
-  if (/category/.test(message) && /column|schema cache/i.test(message)) {
-    return '材料の分類の列がまだありません。Supabaseで supabase-migration-ingredient-categories.sql を実行してください。'
+  if (/category|yield_rate/.test(message) && /column|schema cache/i.test(message)) {
+    return '材料の分類・歩留まりの列がまだありません。Supabaseで supabase-migration-ingredient-categories.sql を実行してください。'
   }
   if (/Failed to fetch|NetworkError/i.test(message)) {
     return '通信できませんでした。電波を確かめて、もう一度押してください。'
@@ -113,7 +113,7 @@ export function useCosts() {
   }, [])
 
   const addIngredient = useCallback(
-    (input: Pick<Ingredient, 'name' | 'category' | 'unit' | 'pack_qty' | 'pack_price'>) =>
+    (input: Pick<Ingredient, 'name' | 'category' | 'unit' | 'pack_qty' | 'pack_price' | 'yield_rate'>) =>
       run<Ingredient>(
         () => supabase.from('ingredients').insert(input).select().single(),
         (row) => setIngredients((prev) => upsertInto(prev, row)),
