@@ -7,10 +7,11 @@ import { DEFAULT_TARGET_RATE, UNITS, parseNumber, percent, suggestedPrice, unitP
 import type { MenuCost } from '@/lib/costs'
 import { RECIPE_CATEGORIES } from '@/lib/recipes'
 import type { Ingredient } from '@/lib/supabase'
+import TrialPanel from './_components/TrialPanel'
 
 export const dynamic = 'force-dynamic'
 
-type Tab = 'menu' | 'ingredients'
+type Tab = 'menu' | 'ingredients' | 'trial'
 
 /** 1つのメニュー。開くと売価・目標・材料を直せる。 */
 function MenuRow({
@@ -327,7 +328,14 @@ export default function CostsPage() {
         <button type="button" className={`view-toggle-btn${tab === 'ingredients' ? ' active' : ''}`} onClick={() => setTab('ingredients')}>
           材料と仕入れ値
         </button>
+        <button type="button" className={`view-toggle-btn${tab === 'trial' ? ' active' : ''}`} onClick={() => setTab('trial')}>
+          試算
+        </button>
       </div>
+
+      {tab === 'trial' ? (
+        <TrialPanel ingredients={costs.ingredients} saving={costs.saving} onRegister={costs.addMenuWithLines} />
+      ) : null}
 
       {tab === 'menu' ? (
         <>
@@ -385,7 +393,9 @@ export default function CostsPage() {
             </div>
           </div>
         </>
-      ) : (
+      ) : null}
+
+      {tab === 'ingredients' ? (
         <div className="category">
           <div className="category-head">
             <div className="badge">材</div>
@@ -434,7 +444,7 @@ export default function CostsPage() {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="footer">
         <div className="footer-note">

@@ -145,6 +145,32 @@ export function useCosts() {
     [run],
   )
 
+  /** 試算からメニューを登録する。メニューを作ってから材料の行をまとめて入れる。 */
+  const addMenuWithLines = useCallback(
+    async (name: string, price: number | null, input: { ingredientId: number; qty: number }[]): Promise<CostResult> => {
+      setSaving(true)
+      try {
+        const { data: menu, error } = await supabase
+          .from('menu_items')
+          .insert({ name, category: 'meat', price, target_rate: null })
+          .select()
+          .single()
+        if (error || !menu) return { ok: false, error: describeError(error) }
+        setMenus((prev) => upsertInto(prev, menu as MenuItem))
+        const { data: rows, error: lineError } = await supabase
+          .from('menu_ingredients')
+          .insert(input.map((l) => ({ menu_item_id: (menu as MenuItem).id, ingredient_id: l.ingredientId, qty: l.qty })))
+          .select()
+        if (lineError) return { ok: false, error: `メニューは作りましたが材料を保存できませんでした(${lineError.message})。「メニュー」タブで足してください。` }
+        setLines((prev) => (rows ?? []).reduce((acc, r) => upsertInto(acc, r as MenuIngredient), prev))
+        return { ok: true }
+      } finally {
+        setSaving(false)
+      }
+    },
+    [],
+  )
+
   /** 材料の行を足す。同じ材料がもうあれば量を書き換える。 */
   const setLine = useCallback(
     (menuItemId: number, ingredientId: number, qty: number) => {
@@ -185,6 +211,7 @@ export function useCosts() {
     addIngredient,
     updateIngredient,
     addMenu,
+    addMenuWithLines,
     updateMenu,
     setLine,
     removeLine,
