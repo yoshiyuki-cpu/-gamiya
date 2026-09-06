@@ -5,6 +5,7 @@ import { useReservations } from '@/hooks/useReservations'
 import type { Reservation } from '@/lib/supabase'
 import { todayKey } from '@/lib/checklist'
 import { currentSlot, dateLabel, seatsLabel, shiftDate, slotLabel } from '@/lib/reservations'
+import MonthCalendar from './_components/MonthCalendar'
 import ReservationGrid from './_components/ReservationGrid'
 import ReservationList from './_components/ReservationList'
 import ReservationSheet from './_components/ReservationSheet'
@@ -31,6 +32,7 @@ export default function ReservationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [moving, setMoving] = useState<Reservation | null>(null)
   const [view, setView] = useState<'grid' | 'list'>('grid')
+  const [calendarOpen, setCalendarOpen] = useState(false)
 
   // 遅れの判定と「いま」の線のために、1分ごとに時刻を見直す。
   const [nowSlot, setNowSlot] = useState<number | null>(null)
@@ -86,9 +88,14 @@ export default function ReservationsPage() {
         <button type="button" className="tc-month-btn" onClick={() => setDate((d) => shiftDate(d, -1))}>
           ◀
         </button>
-        <button type="button" className="rv-date-label" onClick={() => setDate(todayKey())}>
+        <button
+          type="button"
+          className="rv-date-label"
+          onClick={() => setCalendarOpen(true)}
+          aria-label="日付を選ぶ"
+        >
           {dateLabel(date)}
-          {date !== todayKey() ? <span className="rv-today-hint">本日に戻る</span> : null}
+          <span className="rv-today-hint">{date !== todayKey() ? '本日ではありません' : 'カレンダーで選ぶ'}</span>
         </button>
         <button type="button" className="tc-month-btn" onClick={() => setDate((d) => shiftDate(d, 1))}>
           ▶
@@ -188,6 +195,18 @@ export default function ReservationsPage() {
           お客様が着いたら「来店」を押してください。押した卓だけが埋まっているものとして扱われます。
         </div>
       </div>
+
+      {calendarOpen ? (
+        <MonthCalendar
+          date={date}
+          today={todayKey()}
+          onPick={(picked) => {
+            setDate(picked)
+            setCalendarOpen(false)
+          }}
+          onClose={() => setCalendarOpen(false)}
+        />
+      ) : null}
 
       {sheet ? (
         <ReservationSheet
