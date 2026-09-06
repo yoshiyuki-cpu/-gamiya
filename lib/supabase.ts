@@ -289,6 +289,8 @@ export type StockOrder = {
 export type Ingredient = {
   id: number
   name: string
+  // 肉 / 野菜 / 海鮮 / 調味料 / その他
+  category: string
   unit: string
   pack_qty: number
   pack_price: number

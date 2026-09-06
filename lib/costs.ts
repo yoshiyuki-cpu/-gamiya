@@ -1,6 +1,31 @@
 // メニューごとの原価。材料の「買う量と値段」から1皿の材料費を出し、売価と比べる。
 // ここは計算だけ。DBは hooks/useCosts.ts、画面は app/costs/page.tsx。
 
+// 材料の分け方。肉・野菜・海鮮・調味料・その他。
+export type IngredientCategoryId = 'meat' | 'vegetable' | 'seafood' | 'seasoning' | 'other'
+
+export const INGREDIENT_CATEGORIES: { id: IngredientCategoryId; badge: string; name: string }[] = [
+  { id: 'meat', badge: '肉', name: '肉' },
+  { id: 'vegetable', badge: '菜', name: '野菜' },
+  { id: 'seafood', badge: '海', name: '海鮮' },
+  { id: 'seasoning', badge: '調', name: '調味料' },
+  { id: 'other', badge: '他', name: 'その他' },
+]
+
+export function ingredientCategoryName(id: string | null | undefined): string {
+  return INGREDIENT_CATEGORIES.find((c) => c.id === id)?.name ?? 'その他'
+}
+
+/** 分類ごとに分ける。分類の順は INGREDIENT_CATEGORIES のとおり。知らない分類は「その他」に入れる。 */
+export function groupIngredients<T extends { category?: string | null; name: string }>(list: T[]): { category: (typeof INGREDIENT_CATEGORIES)[number]; items: T[] }[] {
+  return INGREDIENT_CATEGORIES.map((category) => ({
+    category,
+    items: list
+      .filter((i) => (INGREDIENT_CATEGORIES.some((c) => c.id === i.category) ? i.category : 'other') === category.id)
+      .sort((a, b) => a.name.localeCompare(b.name, 'ja')),
+  }))
+}
+
 export type IngredientLike = {
   id: number
   name: string
