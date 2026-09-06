@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CostResult } from '@/hooks/useCosts'
 import { DEFAULT_TARGET_RATE, parseNumber, percent, priceTable, rateAt, trialCost, unitPriceLabel, yen } from '@/lib/costs'
 import type { Ingredient } from '@/lib/supabase'
+import IngredientOptions from './IngredientOptions'
 
 const DRAFT_KEY = 'gamiya-cost-trial'
 
@@ -155,12 +156,7 @@ export default function TrialPanel({
           ))}
           <div className="cs-add-line">
             <select className="satisfaction-input" value={newIng} onChange={(e) => setNewIng(e.target.value)} aria-label="材料">
-              <option value="">材料を選ぶ</option>
-              {active.map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.name}({unitPriceLabel(i)})
-                </option>
-              ))}
+              <IngredientOptions ingredients={ingredients} withPrice />
             </select>
             <input className="satisfaction-input cs-qty-input" inputMode="decimal" placeholder="量" value={newQty} onChange={(e) => setNewQty(e.target.value)} aria-label="量" />
             <button type="button" className="st-btn" onClick={addLine}>

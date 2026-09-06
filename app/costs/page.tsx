@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useCosts } from '@/hooks/useCosts'
 import type { CostResult } from '@/hooks/useCosts'
-import { DEFAULT_TARGET_RATE, UNITS, parseNumber, percent, suggestedPrice, unitPriceLabel, usageCount, yen } from '@/lib/costs'
+import { DEFAULT_TARGET_RATE, INGREDIENT_CATEGORIES, UNITS, groupIngredients, parseNumber, percent, suggestedPrice, unitPriceLabel, usageCount, yen } from '@/lib/costs'
+import IngredientOptions from './_components/IngredientOptions'
 import type { MenuCost } from '@/lib/costs'
 import { RECIPE_CATEGORIES } from '@/lib/recipes'
 import type { Ingredient } from '@/lib/supabase'
@@ -121,14 +122,7 @@ function MenuRow({
             ))}
             <div className="cs-add-line">
               <select className="satisfaction-input" value={newIng} onChange={(e) => setNewIng(e.target.value)} aria-label="材料">
-                <option value="">材料を選ぶ</option>
-                {ingredients
-                  .filter((i) => i.active)
-                  .map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}({i.unit})
-                    </option>
-                  ))}
+                <IngredientOptions ingredients={ingredients} />
               </select>
               <input className="satisfaction-input cs-qty-input" inputMode="decimal" placeholder="量" value={newQty} onChange={(e) => setNewQty(e.target.value)} aria-label="量" />
               <button type="button" className="st-btn" disabled={saving} onClick={() => void addLine()}>
@@ -176,6 +170,7 @@ function IngredientRow({
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(ing.name)
   const [unit, setUnit] = useState(ing.unit)
+  const [category, setCategory] = useState(ing.category ?? 'other')
   const [qty, setQty] = useState(String(ing.pack_qty))
   const [priceText, setPriceText] = useState(String(ing.pack_price))
   const [error, setError] = useState<string | null>(null)
@@ -187,7 +182,7 @@ function IngredientRow({
     if (q === null || q <= 0) return setError('買う量は 0 より大きい数字で入れてください。')
     if (p === null) return setError('値段は数字で入れてください。')
     setError(null)
-    const r = await onUpdate({ name: name.trim(), unit, pack_qty: q, pack_price: p })
+    const r = await onUpdate({ name: name.trim(), category, unit, pack_qty: q, pack_price: p })
     if (!r.ok) setError(r.error)
     else setOpen(false)
   }
@@ -210,10 +205,22 @@ function IngredientRow({
       </button>
       {open ? (
         <div className="st-form">
-          <label className="rv-field">
-            <span className="satisfaction-label">名前</span>
-            <input className="satisfaction-input" value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
+          <div className="rv-row-2">
+            <label className="rv-field">
+              <span className="satisfaction-label">名前</span>
+              <input className="satisfaction-input" value={name} onChange={(e) => setName(e.target.value)} />
+            </label>
+            <label className="rv-field rv-field-size">
+              <span className="satisfaction-label">分類</span>
+              <select className="satisfaction-input" value={category} onChange={(e) => setCategory(e.target.value)}>
+                {INGREDIENT_CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <div className="rv-row-2">
             <label className="rv-field">
               <span className="satisfaction-label">買う量</span>
@@ -267,6 +274,7 @@ export default function CostsPage() {
   const [menuPrice, setMenuPrice] = useState('')
   const [ingName, setIngName] = useState('')
   const [ingUnit, setIngUnit] = useState<string>('g')
+  const [ingCategory, setIngCategory] = useState<string>('meat')
   const [ingQty, setIngQty] = useState('')
   const [ingPrice, setIngPrice] = useState('')
 
@@ -288,7 +296,7 @@ export default function CostsPage() {
     if (!ingName.trim()) return setError('材料の名前を入れてください。')
     if (q === null || q <= 0) return setError('買う量は 0 より大きい数字で入れてください。')
     if (p === null) return setError('値段は数字で入れてください。')
-    const r = await costs.addIngredient({ name: ingName.trim(), unit: ingUnit, pack_qty: q, pack_price: p })
+    const r = await costs.addIngredient({ name: ingName.trim(), category: ingCategory, unit: ingUnit, pack_qty: q, pack_price: p })
     if (!r.ok) return setError(r.error)
     setIngName('')
     setIngQty('')
@@ -396,29 +404,61 @@ export default function CostsPage() {
       ) : null}
 
       {tab === 'ingredients' ? (
-        <div className="category">
+        <>
+          {activeIngredients.length === 0 ? (
+            <div className="category">
+              <div className="empty-hint">まだ材料がありません。下から足してください。「1000gを3,800円で買う」のように入れると、円/gが出ます。</div>
+            </div>
+          ) : null}
+          {groupIngredients(activeIngredients)
+            .filter((g) => g.items.length > 0)
+            .map((g) => (
+              <div key={g.category.id} className="category">
+                <div className="category-head">
+                  <div className="badge">{g.category.badge}</div>
+                  <div>
+                    <div className="category-name">{g.category.name}</div>
+                    <div className="category-sub">{g.items.length}種 ・ 名前を押すと直せます</div>
+                  </div>
+                </div>
+                <div className="items">
+                  {g.items.map((ing) => (
+                    <IngredientRow
+                      key={ing.id}
+                      ing={ing}
+                      usedIn={usageCount(ing.id, costs.lines.filter((l) => costs.menus.some((m) => m.id === l.menu_item_id && m.active)))}
+                      saving={costs.saving}
+                      onUpdate={(patch) => costs.updateIngredient(ing.id, patch)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          <div className="category">
           <div className="category-head">
             <div className="badge">材</div>
             <div>
-              <div className="category-name">材料と仕入れ値</div>
+              <div className="category-name">材料を足す</div>
               <div className="category-sub">「1000gを3,800円で買う」のように入れると、円/gが出ます。値段が変わったらここを直すだけ</div>
             </div>
           </div>
-          <div className="items">
-            {activeIngredients.length === 0 ? <div className="empty-hint">まだ材料がありません。下から足してください。</div> : null}
-            {activeIngredients.map((ing) => (
-              <IngredientRow
-                key={ing.id}
-                ing={ing}
-                usedIn={usageCount(ing.id, costs.lines.filter((l) => costs.menus.some((m) => m.id === l.menu_item_id && m.active)))}
-                saving={costs.saving}
-                onUpdate={(patch) => costs.updateIngredient(ing.id, patch)}
-              />
-            ))}
-          </div>
           <div className="satisfaction-body">
-            <label className="satisfaction-label">材料を足す</label>
-            <input className="satisfaction-input" placeholder="例) カルビ" value={ingName} onChange={(e) => setIngName(e.target.value)} />
+            <div className="rv-row-2">
+              <label className="rv-field">
+                <span className="satisfaction-label">名前</span>
+                <input className="satisfaction-input" placeholder="例) カルビ" value={ingName} onChange={(e) => setIngName(e.target.value)} />
+              </label>
+              <label className="rv-field rv-field-size">
+                <span className="satisfaction-label">分類</span>
+                <select className="satisfaction-input" value={ingCategory} onChange={(e) => setIngCategory(e.target.value)} aria-label="分類">
+                  {INGREDIENT_CATEGORIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <div className="rv-row-2">
               <label className="rv-field">
                 <span className="satisfaction-label">買う量</span>
@@ -443,7 +483,8 @@ export default function CostsPage() {
               材料を足す
             </button>
           </div>
-        </div>
+          </div>
+        </>
       ) : null}
 
       <div className="footer">
