@@ -82,6 +82,8 @@ export type BroadcastResult =
  */
 export const KEEP_REMAINING = {
   reportCheck: 0,
+  // 発注漏れは仕入れが止まるので、日々の声かけより優先する。
+  stock: 3,
   // シフトは締め切りに間に合わないと組めなくなるので、日々の声かけより優先する。
   shiftReminder: 6,
   shiftReport: 9,

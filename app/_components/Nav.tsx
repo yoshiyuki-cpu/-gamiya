@@ -32,6 +32,10 @@ export default function Nav() {
         <span className="nav-icon" aria-hidden="true">🍖</span>
         <span className="nav-label">壁紙注文</span>
       </Link>
+      <Link href="/stock" className={pathname?.startsWith('/stock') ? 'active' : ''}>
+        <span className="nav-icon" aria-hidden="true">📦</span>
+        <span className="nav-label">発注</span>
+      </Link>
       <Link href="/assistant" className={pathname?.startsWith('/assistant') ? 'active' : ''}>
         <span className="nav-icon" aria-hidden="true">💬</span>
         <span className="nav-label">AI相談</span>
