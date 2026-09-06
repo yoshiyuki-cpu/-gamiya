@@ -30,6 +30,52 @@ function describeError(error: DbError): string {
   return `保存できませんでした${message ? `(${message})` : ''}。もう一度押してください。`
 }
 
+/** ふりかえりに移す前に、議事録の「良かった事・悪かった事」として書かれたもの。 */
+export type LegacyDailyNote = {
+  id: number
+  meeting_date: string
+  title: string | null
+  memo: string | null
+  summary_overview: string | null
+  summary_decisions: string | null
+  summary_action_items: string | null
+}
+
+/** 議事録に残っている昔の「良かった事・悪かった事」を読むだけで持ってくる。 */
+export function useLegacyDailyNotes() {
+  const [notes, setNotes] = useState<LegacyDailyNote[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const since = recentBusinessDayKeys(HISTORY_DAYS)[0]
+      const { data } = await supabase
+        .from('meetings')
+        .select('id, meeting_date, title, memo, summary_overview, summary_decisions, summary_action_items')
+        .eq('category', 'daily')
+        .gte('meeting_date', since)
+        .order('meeting_date', { ascending: false })
+      if (cancelled) return
+      setNotes((data ?? []) as LegacyDailyNote[])
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return notes
+}
+
+/** 議事録の1件を、ふりかえりの一覧に出す1行の文にする。 */
+export function legacyNoteText(n: LegacyDailyNote): string {
+  const parts = [n.summary_overview, n.summary_decisions ? `決めたこと: ${n.summary_decisions}` : null, n.summary_action_items ? `宿題: ${n.summary_action_items}` : null]
+    .filter((s): s is string => !!s && s.trim() !== '')
+  const body = parts.length ? parts.join('\n') : (n.memo ?? '').trim()
+  const title = (n.title ?? '').trim()
+  if (title && body) return `${title}\n${body}`
+  return title || body || '(内容なし)'
+}
+
 export function useReflections() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
