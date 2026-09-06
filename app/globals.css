@@ -1312,34 +1312,82 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
   width: 100%; max-width: 480px;
   z-index: 20;
   display:flex;
-  /* タブが8個あり390px幅では収まりきらないため、横スクロールできるようにする。 */
-  overflow-x:auto;
-  scrollbar-width:none;
-  justify-content: flex-start;
+  /* 毎日さわる5つ＋メニューの6つだけ。横スクロールはさせない(375pxで1つ60px)。 */
+  justify-content: stretch;
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
-  padding: 8px 6px calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -10px 24px -16px rgba(0,0,0,0.6);
 }
 @media (min-width: 520px){
   .nav{ border-radius: 16px 16px 0 0; bottom: 0; }
 }
-.nav a{
-  flex:1 0 auto; min-width:52px; max-width:96px;
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-  padding: 6px 4px;
+.nav a, .nav-more{
+  flex:1 1 0; min-width:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  min-height:48px;
+  padding: 5px 2px;
   border-radius: 10px;
   color: var(--muted);
-  font-size:10.5px; font-weight:700;
+  font-size:10px; font-weight:700;
   text-decoration:none;
+  background:none; border:none; cursor:pointer;
+  font-family:'Noto Sans JP', sans-serif;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
-.nav::-webkit-scrollbar{ display:none; }
 .nav-icon{ font-size:17px; line-height:1; }
-.nav-label{ white-space:nowrap; }
-.nav a.active{ color: var(--ember-glow); }
-.nav a.active .nav-icon{ filter: drop-shadow(0 0 6px rgba(255,140,66,0.55)); }
+.nav-label{ white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+.nav a.active, .nav-more.active{ color: var(--ember-glow); }
+.nav a.active .nav-icon, .nav-more.active .nav-icon{ filter: drop-shadow(0 0 6px rgba(255,140,66,0.55)); }
+
+/* メニュー: 親指の届く下から出る。2列で1つ56px以上。 */
+.menu-backdrop{
+  position:fixed; inset:0; z-index:30;
+  background: rgba(0,0,0,0.6);
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.menu-sheet{
+  width:100%; max-width:480px;
+  background: var(--surface); border:1px solid var(--line);
+  border-radius:16px 16px 0 0;
+  /* 下のタブに重ならないよう、タブの高さぶん空ける */
+  padding: 0 12px calc(78px + env(safe-area-inset-bottom, 0px));
+  animation: menu-up 160ms ease-out;
+}
+@keyframes menu-up{ from{ transform: translateY(24px); opacity:0; } to{ transform:none; opacity:1; } }
+.menu-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 14px 4px 10px;
+}
+.menu-title{
+  font-family:'Shippori Mincho', serif; font-weight:800;
+  font-size:18px; color: var(--cream);
+}
+.menu-close{
+  width:44px; height:44px; border-radius:12px;
+  background: var(--surface-2); border:1px solid var(--line);
+  color: var(--muted); font-size:22px; line-height:1; cursor:pointer;
+}
+.menu-grid{
+  display:grid; grid-template-columns: 1fr 1fr; gap:8px;
+}
+.menu-item{
+  display:flex; align-items:center; gap:10px;
+  min-height:60px; padding: 10px 12px;
+  background: var(--surface-2); border:1px solid var(--line);
+  border-radius:14px;
+  color: var(--cream); text-decoration:none;
+  touch-action: manipulation;
+}
+.menu-item:active{ transform: scale(0.98); }
+.menu-item.active{ border-color: var(--ember-glow); box-shadow: 0 0 0 1px rgba(255,140,66,0.35) inset; }
+.menu-icon{ font-size:22px; line-height:1; flex-shrink:0; }
+.menu-text{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.menu-label{ font-size:14px; font-weight:700; }
+.menu-desc{ font-size:10.5px; color: var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* Wall menu orders */
 .order-form{ display:flex; flex-direction:column; gap:12px; padding: 14px 16px; }
