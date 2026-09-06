@@ -283,6 +283,44 @@ export type StockOrder = {
   ordered_at: string
 }
 
+// ---- 原価 ----
+// 材料は「買う量と値段」で持ち、単価(円/g)は画面で計算する。
+
+export type Ingredient = {
+  id: number
+  name: string
+  unit: string
+  pack_qty: number
+  pack_price: number
+  note: string | null
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type MenuItem = {
+  id: number
+  name: string
+  category: string
+  price: number | null
+  target_rate: number | null
+  note: string | null
+  active: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+/** 1皿に使う材料と量。 */
+export type MenuIngredient = {
+  id: number
+  menu_item_id: number
+  ingredient_id: number
+  qty: number
+  created_at: string
+  updated_at: string
+}
+
 export type ReflectionKind = 'good' | 'bad'
 
 /** スタッフが書いた「良かった事」「悪かった事」1つ。 */
