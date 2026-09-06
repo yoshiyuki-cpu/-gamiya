@@ -72,26 +72,5 @@ export function reanchorTo(iso: string | null, newWorkDate: string): string | nu
   return composeAt(newWorkDate, timeLabel(iso))
 }
 
-/** 'YYYY-MM' の月に含まれる営業日の範囲(月末日も含む)。 */
-export function monthRange(monthKey: string): { start: string; end: string } {
-  const [y, m] = monthKey.split('-').map(Number)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const lastDay = new Date(y, m, 0).getDate()
-  return { start: `${y}-${pad(m)}-01`, end: `${y}-${pad(m)}-${pad(lastDay)}` }
-}
-
-export function currentMonthKey(now = new Date()): string {
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-}
-
-export function monthLabel(monthKey: string): string {
-  const [y, m] = monthKey.split('-').map(Number)
-  return `${y}年${m}月`
-}
-
-/** 選択中の月から前後に動かす。 */
-export function shiftMonth(monthKey: string, delta: number): string {
-  const [y, m] = monthKey.split('-').map(Number)
-  const d = new Date(y, m - 1 + delta, 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
+// 月の扱いは予約表のカレンダーと同じものを使う。2か所に書くと片方だけ直る。
+export { currentMonthKey, monthLabel, monthRange, shiftMonth } from './months'
