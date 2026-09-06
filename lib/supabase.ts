@@ -43,7 +43,7 @@ export type DailyRecord = {
   updated_at: string
 }
 
-// 1件 = 1回の勤務。work_date は営業日(朝5時区切り)なので、
+// 1件 = 1回の勤務。work_date は営業日(昼12時区切り)なので、
 // 深夜までの勤務も出勤した日の1件としてまとまる。
 export type TimeEntry = {
   id: number

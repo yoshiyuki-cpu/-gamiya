@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { RESET_HOUR } from './businessDay'
 
 // LINEリマインド用の共通処理。通知の種類が増えても同じ約束事で動くよう、
 // 日付の計算・Cronの認証・LINEへの送信をここにまとめている。
-
-const RESET_HOUR = 5
 const LINE_BROADCAST_URL = 'https://api.line.me/v2/bot/message/broadcast'
 const LINE_QUOTA_URL = 'https://api.line.me/v2/bot/message/quota'
 const LINE_CONSUMPTION_URL = 'https://api.line.me/v2/bot/message/quota/consumption'
 
 /**
- * JSTの営業日(朝5時区切り)のキー。
+ * JSTの営業日(昼12時区切り)のキー。
  * サーバーのタイムゾーンはUTCなので、クライアント側の todayKey() と
  * 同じ日付になるようここでズレを吸収する。
  */
