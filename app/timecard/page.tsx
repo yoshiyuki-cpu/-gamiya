@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { usePostCheck } from '@/hooks/usePostCheck'
 import { useReflections } from '@/hooks/useReflections'
 import { useTimecard } from '@/hooks/useTimecard'
 import type { StaffRow } from '@/hooks/useTimecard'
@@ -8,6 +9,7 @@ import { todayLabelText } from '@/lib/checklist'
 import type { ReflectionKind } from '@/lib/supabase'
 import { breakMs, durationLabel, timeLabel, workedMs } from '@/lib/timecard'
 import ClockOutSheet from './_components/ClockOutSheet'
+import PostCheckSheet from './_components/PostCheckSheet'
 import StaffManager from './_components/StaffManager'
 import TimecardAdmin from './_components/TimecardAdmin'
 
@@ -38,6 +40,7 @@ function StaffCard({
 }) {
   const { entry, breaks, state } = row
   const done = !!entry?.clock_out
+  const needsPostCheck = state === 'off' && row.checksPost
 
   return (
     <div className={`tc-card tc-${state}${done ? ' tc-done' : ''}`}>
@@ -45,6 +48,8 @@ function StaffCard({
         <span className="tc-name">{row.name}</span>
         <span className={`tc-chip tc-chip-${done ? 'done' : state}`}>{done ? '退勤済み' : STATE_LABEL[state]}</span>
       </div>
+
+      {needsPostCheck ? <div className="tc-post-hint">📬 出勤の前にポストの確認が必要です</div> : null}
 
       {entry ? (
         <div className="tc-card-times">
@@ -87,8 +92,21 @@ function StaffCard({
 }
 
 export default function TimecardPage() {
-  const { loading, busy, rows, clockIn, clockOut, startBreak, endBreak, addStaff, renameStaff, deleteStaff, countStaffRecords } =
-    useTimecard()
+  const {
+    loading,
+    busy,
+    rows,
+    clockIn,
+    clockOut,
+    startBreak,
+    endBreak,
+    addStaff,
+    renameStaff,
+    deleteStaff,
+    countStaffRecords,
+    togglePostCheck,
+    staffColumnMissing,
+  } = useTimecard()
   const [tab, setTab] = useState<'punch' | 'admin'>('punch')
   const [now, setNow] = useState(() => Date.now())
 
@@ -97,6 +115,37 @@ export default function TimecardPage() {
   // ふりかえりの表がまだ無い(SQL未実行)ときは、退勤を止めない。
   const reflections = useReflections()
   const [pendingOut, setPendingOut] = useState<StaffRow | null>(null)
+
+  // 店長・赤木の出勤の前に「ポストの確認をしました」を押させる。
+  // 1日1回、どちらかが押せば残りの人は出せる(共有の確認)。
+  // ポスト確認の表がまだ無い(SQL未実行)ときは、出勤を止めない。
+  const postCheck = usePostCheck()
+  const [pendingIn, setPendingIn] = useState<StaffRow | null>(null)
+  const [postCheckError, setPostCheckError] = useState<string | null>(null)
+
+  const requestClockIn = useCallback(
+    (row: StaffRow) => {
+      if (!row.checksPost || postCheck.done) {
+        void clockIn(row.name)
+        return
+      }
+      setPostCheckError(null)
+      setPendingIn(row)
+    },
+    [postCheck.done, clockIn],
+  )
+
+  const confirmPostCheckAndClockIn = useCallback(async () => {
+    if (!pendingIn) return
+    const result = await postCheck.confirm(pendingIn.name)
+    if (!result.ok) {
+      setPostCheckError(result.error)
+      return
+    }
+    const row = pendingIn
+    setPendingIn(null)
+    await clockIn(row.name)
+  }, [pendingIn, postCheck, clockIn])
 
   const requestClockOut = useCallback(
     (row: StaffRow) => {
@@ -184,7 +233,7 @@ export default function TimecardPage() {
                 row={row}
                 busy={busy === row.name}
                 now={now}
-                onClockIn={() => clockIn(row.name)}
+                onClockIn={() => requestClockIn(row)}
                 onClockOut={() => requestClockOut(row)}
                 onStartBreak={() => startBreak(row)}
                 onEndBreak={() => endBreak(row)}
@@ -194,10 +243,13 @@ export default function TimecardPage() {
 
           <StaffManager
             names={rows.map((r) => r.name)}
+            checksPostNames={new Set(rows.filter((r) => r.checksPost).map((r) => r.name))}
+            staffColumnMissing={staffColumnMissing}
             onAdd={addStaff}
             onRename={renameStaff}
             onDelete={deleteStaff}
             onCountRecords={countStaffRecords}
+            onTogglePostCheck={togglePostCheck}
           />
 
           <div className="footer">
@@ -217,6 +269,16 @@ export default function TimecardPage() {
           saving={reflections.saving || busy === pendingOut.name}
           onSave={saveAndClockOut}
           onClose={() => setPendingOut(null)}
+        />
+      ) : null}
+
+      {pendingIn ? (
+        <PostCheckSheet
+          staffName={pendingIn.name}
+          saving={postCheck.saving || busy === pendingIn.name}
+          error={postCheckError}
+          onConfirm={confirmPostCheckAndClockIn}
+          onClose={() => setPendingIn(null)}
         />
       ) : null}
     </div>

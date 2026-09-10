@@ -12,6 +12,8 @@ export type StaffRow = {
   entry: TimeEntry | undefined
   breaks: TimeBreak[]
   state: StaffState
+  // 出勤の前に「ポストの確認をしました」を押す必要がある人か。
+  checksPost: boolean
 }
 
 // 担当者名は文字列のまま各テーブルに入っている。名前を直すときは
@@ -19,6 +21,15 @@ export type StaffRow = {
 const STAFF_NAME_TABLES = ['daily_records', 'time_entries', 'wall_orders', 'x_posts'] as const
 
 export type RenameResult = { ok: true; merged: boolean } | { ok: false; error: string }
+export type StaffResult = { ok: true } | { ok: false; error: string }
+
+function describeStaffError(error: { code?: string; message?: string } | null): string {
+  const message = error?.message ?? ''
+  if (/checks_post/.test(message) && /column|schema cache/i.test(message)) {
+    return 'ポスト確認の列がまだありません。Supabaseで supabase-migration-post-check.sql を実行してください。'
+  }
+  return `保存できませんでした${message ? `(${message})` : ''}。もう一度押してください。`
+}
 
 async function fetchBreaksFor(entries: TimeEntry[]): Promise<TimeBreak[]> {
   if (entries.length === 0) return []
@@ -34,17 +45,30 @@ export function useTimecard() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const [staffList, setStaffList] = useState<string[]>([])
+  // ポスト確認が必要な人の名前。checks_post の列がまだ無ければ空のまま(誰も止めない)。
+  const [postCheckStaff, setPostCheckStaff] = useState<Set<string>>(new Set())
+  const [staffColumnMissing, setStaffColumnMissing] = useState(false)
   const [entries, setEntries] = useState<TimeEntry[]>([])
   const [breaks, setBreaks] = useState<TimeBreak[]>([])
   const [workDate] = useState(todayKey)
 
   const reload = useCallback(async () => {
-    const [{ data: staffData }, { data: entryData }] = await Promise.all([
-      supabase.from('staff_names').select('name').order('name'),
+    const [staffRes, { data: entryData }] = await Promise.all([
+      supabase.from('staff_names').select('name, checks_post').order('name'),
       supabase.from('time_entries').select('*').eq('work_date', workDate).order('id'),
     ])
+    // checks_post の列がまだ無い(SQL未実行)ときは、名前だけで取り直す。
+    // 列が無いだけでスタッフ一覧ごと表示できなくなるのを避けるため。
+    let staffData = staffRes.data as { name: string; checks_post: boolean }[] | null
+    const columnMissing = !!staffRes.error && /checks_post/.test(staffRes.error.message ?? '') && /column|schema cache/i.test(staffRes.error.message ?? '')
+    if (staffRes.error) {
+      const fallback = await supabase.from('staff_names').select('name').order('name')
+      staffData = (fallback.data ?? []).map((s) => ({ name: s.name, checks_post: false }))
+    }
     const list = (entryData ?? []) as TimeEntry[]
     setStaffList((staffData ?? []).map((s) => s.name))
+    setPostCheckStaff(new Set((staffData ?? []).filter((s) => s.checks_post).map((s) => s.name)))
+    setStaffColumnMissing(columnMissing)
     setEntries(list)
     setBreaks(await fetchBreaksFor(list))
   }, [workDate])
@@ -78,9 +102,9 @@ export function useTimecard() {
       const mine = entries.filter((e) => e.staff_name === name)
       const entry = mine[mine.length - 1]
       const myBreaks = entry ? breaks.filter((b) => b.entry_id === entry.id) : []
-      return { name, entry, breaks: myBreaks, state: stateOf(entry, myBreaks) }
+      return { name, entry, breaks: myBreaks, state: stateOf(entry, myBreaks), checksPost: postCheckStaff.has(name) }
     })
-  }, [staffList, entries, breaks])
+  }, [staffList, entries, breaks, postCheckStaff])
 
   const clockIn = useCallback(
     async (name: string) => {
@@ -150,6 +174,17 @@ export function useTimecard() {
       if (!trimmed) return
       await supabase.from('staff_names').upsert({ name: trimmed }, { onConflict: 'name', ignoreDuplicates: true })
       await reload()
+    },
+    [reload],
+  )
+
+  /** 「出勤の前にポスト確認が必要」を付けたり外したりする。 */
+  const togglePostCheck = useCallback(
+    async (name: string, next: boolean): Promise<StaffResult> => {
+      const { error } = await supabase.from('staff_names').update({ checks_post: next }).eq('name', name)
+      if (error) return { ok: false, error: describeStaffError(error) }
+      await reload()
+      return { ok: true }
     },
     [reload],
   )
@@ -224,6 +259,8 @@ export function useTimecard() {
     renameStaff,
     deleteStaff,
     countStaffRecords,
+    togglePostCheck,
+    staffColumnMissing,
   }
 }
 

@@ -98,6 +98,17 @@ export type StaffName = {
   role: 'staff' | 'parttime'
   position: 'hall' | 'kitchen' | 'both'
   active: boolean
+  // true の人は、出勤の前に「ポストの確認をしました」を押さないと出勤できない。
+  checks_post: boolean
+  created_at: string
+}
+
+// 行が存在する = その営業日にポスト(郵便受け)を確認した、という意味。
+// 店長・赤木のどちらかが出勤時に1回押せば、その日はもう出ない(共有の確認)。
+export type PostCheck = {
+  id: number
+  check_date: string
+  staff_name: string | null
   created_at: string
 }
 
