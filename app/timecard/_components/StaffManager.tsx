@@ -1,20 +1,27 @@
 'use client'
 
 import { useState } from 'react'
-import type { RenameResult } from '@/hooks/useTimecard'
+import type { RenameResult, StaffResult } from '@/hooks/useTimecard'
 
 export default function StaffManager({
   names,
+  checksPostNames,
+  staffColumnMissing,
   onAdd,
   onRename,
   onDelete,
   onCountRecords,
+  onTogglePostCheck,
 }: {
   names: string[]
+  /** 出勤の前にポスト確認が必要な人の名前。 */
+  checksPostNames: Set<string>
+  staffColumnMissing: boolean
   onAdd: (name: string) => void
   onRename: (oldName: string, newName: string) => Promise<RenameResult>
   onDelete: (name: string) => void
   onCountRecords: (name: string) => Promise<number>
+  onTogglePostCheck: (name: string, next: boolean) => Promise<StaffResult>
 }) {
   const [newStaff, setNewStaff] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
@@ -22,6 +29,15 @@ export default function StaffManager({
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [toggling, setToggling] = useState<string | null>(null)
+
+  const togglePostCheck = async (name: string, next: boolean) => {
+    setToggling(name)
+    setError(null)
+    const result = await onTogglePostCheck(name, next)
+    setToggling(null)
+    if (!result.ok) setError(result.error)
+  }
 
   const startEdit = (name: string) => {
     setEditing(name)
@@ -95,6 +111,14 @@ export default function StaffManager({
           ) : (
             <div key={name} className="staff-row">
               <span className="staff-row-name">{name}</span>
+              <button
+                type="button"
+                className={`staff-post-btn${checksPostNames.has(name) ? ' active' : ''}`}
+                disabled={staffColumnMissing || toggling === name}
+                onClick={() => void togglePostCheck(name, !checksPostNames.has(name))}
+              >
+                📬 ポスト確認{checksPostNames.has(name) ? 'あり' : 'なし'}
+              </button>
               <button type="button" className="staff-rename-btn" onClick={() => startEdit(name)}>
                 名前を直す
               </button>
@@ -107,6 +131,15 @@ export default function StaffManager({
       </div>
 
       <div className="satisfaction-body">
+        {staffColumnMissing ? (
+          <div className="recorder-error">
+            ポスト確認の列がまだありません。Supabaseで supabase-migration-post-check.sql を実行してください。
+          </div>
+        ) : null}
+        <div className="staff-post-hint">
+          「📬 ポスト確認あり」の人は、出勤の前に「ポストの確認をしました」を押さないと出勤できません。
+          誰か1人が押せばその日はもう出ません。
+        </div>
         {error ? <div className="recorder-error">{error}</div> : null}
         {message ? <div className="staff-message">{message}</div> : null}
 
