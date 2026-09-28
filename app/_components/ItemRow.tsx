@@ -61,15 +61,20 @@ function QuantityField({
   return (
     <>
       <span className={`qty-dot${filled ? ' filled' : ''}`}></span>
-      <span className={`item-text${filled ? ' filled-text' : ''}`}>{item.text}</span>
-      {filled ? (
-        <StaffSelect
-          itemId={item.id}
-          value={record?.staff_name ?? ''}
-          staffList={staffList}
-          onSetItemStaff={onSetItemStaff}
-        />
-      ) : null}
+      {/* 名前の下に担当者を出す。横に並べるとスマホで名前が細く折り返してしまうため */}
+      <span className="item-body">
+        <span className={`item-text${filled ? ' filled-text' : ''}`}>{item.text}</span>
+        {filled ? (
+          <span className="item-meta">
+            <StaffSelect
+              itemId={item.id}
+              value={record?.staff_name ?? ''}
+              staffList={staffList}
+              onSetItemStaff={onSetItemStaff}
+            />
+          </span>
+        ) : null}
+      </span>
       <input
         ref={inputRef}
         className="qty-input"
@@ -103,23 +108,28 @@ function CheckboxField({
   const timeLabel = record?.checked_time
 
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', cursor: 'pointer' }}>
+    <label className="item-label">
       <input type="checkbox" checked={checked} onChange={() => onToggleCheck(item.id)} />
       <span className="check-circle">
         <svg viewBox="0 0 24 24" fill="none">
           <path d="M5 13l4 4L19 7" stroke="#fff2e6" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
-      <span className="item-text">{item.text}</span>
-      {checked && timeLabel ? <span className="time-badge">{timeLabel}</span> : null}
-      {checked ? (
-        <StaffSelect
-          itemId={item.id}
-          value={record?.staff_name ?? ''}
-          staffList={staffList}
-          onSetItemStaff={onSetItemStaff}
-        />
-      ) : null}
+      {/* 名前の下に「時刻・担当者」を出す。横に並べるとスマホで名前が細く折り返してしまうため */}
+      <span className="item-body">
+        <span className="item-text">{item.text}</span>
+        {checked ? (
+          <span className="item-meta">
+            {timeLabel ? <span className="time-badge">{timeLabel}</span> : null}
+            <StaffSelect
+              itemId={item.id}
+              value={record?.staff_name ?? ''}
+              staffList={staffList}
+              onSetItemStaff={onSetItemStaff}
+            />
+          </span>
+        ) : null}
+      </span>
     </label>
   )
 }

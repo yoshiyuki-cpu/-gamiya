@@ -13,6 +13,13 @@
   --danger: #b5504a;
 }
 *{ box-sizing:border-box; }
+html{
+  /* 横向きにしたときに文字が勝手に大きくならないように */
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  /* タップしたときの青い四角を出さない(押した感触は各ボタンの :active で出す) */
+  -webkit-tap-highlight-color: transparent;
+}
 html,body{
   margin:0; padding:0; min-height:100%;
   background: var(--bg);
@@ -21,72 +28,72 @@ html,body{
 }
 body{
   display:flex; flex-direction:column; align-items:center;
-  padding: 28px 14px calc(78px + env(safe-area-inset-bottom, 0px));
+  /* ホーム画面から開いたとき(全画面)は、上の時計・下のバーの分をよける */
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 12px calc(88px + env(safe-area-inset-bottom, 0px));
 }
 .app{ width:100%; max-width:480px; }
+/* ダブルタップの拡大待ちをなくして、押した瞬間に反応させる */
+button, a, select, label, summary, [role="button"]{ touch-action: manipulation; }
 
-/* Header */
+/* Header: スマホでは画面の上をなるべく中身に使う。枠のない大きな見出しにする */
 .header{
-  background: linear-gradient(180deg, var(--surface-2), var(--surface));
-  border:1px solid var(--line);
-  border-radius: 18px;
-  padding: 22px 20px 18px;
-  margin-bottom: 18px;
+  padding: 6px 4px 12px;
+  margin-bottom: 8px;
   position: relative;
-  overflow: hidden;
 }
-.header::before{
-  content:"";
-  position:absolute; inset:0;
-  background-image: repeating-linear-gradient(115deg, rgba(232,98,44,0.05) 0px, rgba(232,98,44,0.05) 2px, transparent 2px, transparent 18px);
-  pointer-events:none;
-}
-.top-row{ display:flex; justify-content:space-between; align-items:flex-start; position:relative; z-index:1; }
+.top-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; position:relative; z-index:1; }
+.top-row > div:first-child{ min-width:0; }
 .eyebrow{
-  font-size:11px; letter-spacing:2px; color: var(--gold);
-  text-transform:uppercase; font-weight:700; margin-bottom:6px;
+  font-size:10.5px; letter-spacing:2.5px; color: var(--gold);
+  text-transform:uppercase; font-weight:700; margin-bottom:2px;
 }
 .title{
   font-family:'Shippori Mincho', serif;
   font-weight:800;
-  font-size: 30px;
+  font-size: 26px;
   color: var(--cream);
-  line-height:1.2;
-  margin: 0 0 4px;
+  line-height:1.25;
+  margin: 0 0 2px;
 }
 .subtitle{
-  font-size:13px; color: var(--muted); margin-bottom:16px;
+  font-size:13px; color: var(--muted); line-height:1.5;
 }
 .edit-toggle{
   flex-shrink:0;
+  min-height:44px;
   background: var(--surface-2);
   border:1px solid var(--line);
   color: var(--gold);
-  font-size:12.5px; font-weight:700;
-  padding: 8px 13px;
-  border-radius: 9px;
+  font-size:13px; font-weight:700;
+  padding: 0 16px;
+  border-radius: 22px;
   cursor:pointer;
-  margin-top:2px;
+  font-family:'Noto Sans JP', sans-serif;
+  white-space:nowrap;
 }
 .edit-toggle:hover{ border-color: var(--gold); }
 .edit-toggle.active{ background: var(--ember); color:#fff2e6; border-color: var(--ember-glow); }
 
 .staff-row{
-  display:flex; align-items:center; gap:8px;
+  display:flex; align-items:center; gap:10px;
   margin-bottom:12px;
   position:relative; z-index:1;
 }
+/* 「.staff-row」は勤怠のスタッフ管理でも使っている(あちらは線と余白つき)。見出しの中では外す */
+.header .staff-row{ margin: 12px 0 0; padding:0; border-bottom:none; flex-wrap:nowrap; }
+.header .progress-wrap{ margin-top:12px; }
 .staff-row label{
-  font-size:11.5px; color: var(--muted); flex-shrink:0;
+  font-size:12.5px; color: var(--muted); flex-shrink:0;
 }
 .staff-row input{
   flex:1; min-width:0;
-  background: var(--surface-2);
+  min-height:44px;
+  background: var(--surface);
   border:1px solid var(--line);
-  border-radius:8px;
-  padding: 7px 10px;
+  border-radius:12px;
+  padding: 8px 12px;
   color: var(--cream);
-  font-size:13px;
+  font-size:16px;
   font-family:'Noto Sans JP', sans-serif;
 }
 .staff-row input::placeholder{ color: var(--muted); }
@@ -112,12 +119,13 @@ body{
   background: var(--surface);
   border:1px solid var(--line);
   border-radius: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   overflow: hidden;
 }
 .category-head{
   display:flex; align-items:center; gap:12px;
-  padding: 14px 16px;
+  min-height:56px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--line);
   cursor:pointer;
 }
@@ -190,16 +198,17 @@ body{
   box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
 }
 .category-name{
-  font-weight:700; font-size:15px; color: var(--cream);
+  font-weight:700; font-size:15.5px; color: var(--cream); line-height:1.4;
 }
 .category-sub{
-  font-size:11px; color: var(--muted); margin-top:1px;
+  font-size:12px; color: var(--muted); margin-top:1px; line-height:1.45;
 }
 
 .item{
   display:flex; align-items:center; gap:12px;
-  padding: 11px 10px;
-  border-radius:10px;
+  min-height:54px;
+  padding: 10px 10px;
+  border-radius:12px;
   position:relative;
 }
 .item.clickable{ cursor:pointer; }
@@ -207,9 +216,23 @@ body{
 .item input[type="checkbox"]{
   position:absolute; opacity:0; width:0; height:0;
 }
+/* 行ぜんたいを押せる。名前の下に「時刻・担当者」を並べて、名前を細くしない */
+.item-label{
+  display:flex; align-items:center; gap:12px;
+  width:100%; min-height:34px;
+  cursor:pointer;
+}
+.item-label:active .check-circle{ transform: scale(0.9); }
+.item-body{
+  flex:1; min-width:0;
+  display:flex; flex-direction:column; gap:6px;
+}
+.item-meta{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
 .check-circle{
   flex-shrink:0;
-  width:24px; height:24px; border-radius:50%;
+  width:28px; height:28px; border-radius:50%;
   border: 2px solid var(--line);
   background: var(--surface-2);
   display:flex; align-items:center; justify-content:center;
@@ -221,7 +244,7 @@ body{
   box-shadow: 0 0 10px 1px rgba(255,140,66,0.5);
 }
 .check-circle svg{
-  width:13px; height:13px; opacity:0; transform: scale(0.6);
+  width:15px; height:15px; opacity:0; transform: scale(0.6);
   transition: all 0.15s;
 }
 .item input:checked + .check-circle svg{ opacity:1; transform: scale(1); }
@@ -240,10 +263,11 @@ body{
 }
 
 .item-text{
-  font-size:14.5px; color: var(--cream); line-height:1.4; flex:1;
+  font-size:15.5px; color: var(--cream); line-height:1.45; flex:1;
   transition: color 0.2s, opacity 0.2s;
 }
-.item input:checked ~ .item-text{ color: var(--muted); text-decoration: line-through; opacity:0.75; }
+.item input:checked ~ .item-text,
+.item input:checked ~ .item-body .item-text{ color: var(--muted); text-decoration: line-through; opacity:0.75; }
 .item-text.filled-text{ color: var(--muted); }
 
 /* 手順メモ:押す行ではないので、チェック行より一段小さく・淡く・字下げして出す */
@@ -275,12 +299,13 @@ body{
 .qty-input{
   width: 84px;
   flex-shrink:0;
+  min-height:44px;
   background: var(--surface-2);
   border:1px solid var(--line);
-  border-radius:8px;
-  padding: 7px 9px;
+  border-radius:10px;
+  padding: 8px 10px;
   color: var(--cream);
-  font-size:13.5px;
+  font-size:16px;
   text-align:right;
   font-family:'Noto Sans JP', sans-serif;
 }
@@ -329,27 +354,32 @@ body{
 
 .time-badge{
   flex-shrink:0;
-  font-size:11px; color: var(--gold);
+  font-size:12.5px; color: var(--gold);
   background: rgba(201,162,39,0.12);
-  padding:3px 9px; border-radius:20px;
+  padding:4px 10px; border-radius:20px;
   white-space:nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .staff-badge{
   flex-shrink:0;
-  font-size:11px; color: var(--muted);
+  font-size:12px; color: var(--muted);
   background: rgba(162,144,124,0.15);
-  padding:3px 9px; border-radius:20px;
+  padding:3px 10px; border-radius:20px;
   white-space:nowrap;
 }
 
+/* 誰がやったかを直す選択。ふだんは「山田 ⌄」と文字だけに見せて、行を重くしない。
+   押せる高さは確保し、iPhoneで拡大されないよう16px */
 .staff-select{
   flex-shrink:0;
-  max-width:88px;
-  font-size:11px; color: var(--muted);
-  background: rgba(162,144,124,0.15);
+  max-width:150px;
+  min-height:36px;
+  font-size:16px; color: var(--muted);
+  -webkit-appearance:none; appearance:none;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a2907c' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 6px center;
   border: 1px solid transparent;
-  padding:3px 6px; border-radius:20px;
+  padding:4px 22px 4px 6px; border-radius:10px;
   white-space:nowrap;
   cursor:pointer;
   font-family:'Noto Sans JP', sans-serif;
@@ -404,22 +434,24 @@ body{
   background: none;
   border: 1px solid var(--line);
   color: var(--muted);
+  min-height:44px;
   padding: 10px 18px;
-  border-radius: 10px;
-  font-size: 13px;
+  border-radius: 12px;
+  font-size: 13.5px;
   font-family:'Noto Sans JP', sans-serif;
   cursor:pointer;
 }
 .reset-btn:hover{ border-color: var(--danger); color: var(--danger); }
 .restore-btn:hover{ border-color: var(--gold); color: var(--gold); }
-.footer-note{ font-size:11px; color: var(--muted); text-align:center; }
+.footer-note{ font-size:12px; color: var(--muted); text-align:center; line-height:1.7; }
 .next-guest-btn{
   background: var(--ember);
   border:none;
   color:#fff2e6;
+  min-height:48px;
   padding: 12px 22px;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 15px;
   font-weight:700;
   font-family:'Noto Sans JP', sans-serif;
   cursor:pointer;
@@ -429,33 +461,36 @@ body{
 .next-guest-btn:disabled:hover{ background: var(--ember); }
 
 /* Guest-check: satisfaction section */
-.satisfaction-body{ padding: 6px 16px 16px; display:flex; flex-direction:column; gap:10px; }
+.satisfaction-body{ padding: 8px 14px 16px; display:flex; flex-direction:column; gap:10px; }
 .rank-row{ display:flex; gap:6px; flex-wrap:wrap; }
 .rank-btn{
-  flex:1; min-width:38px;
+  flex:1; min-width:44px;
+  min-height:48px;
   background: var(--surface-2);
   border:1px solid var(--line);
   color: var(--muted);
-  font-family:'Shippori Mincho', serif; font-weight:800; font-size:16px;
-  padding: 9px 0;
-  border-radius: 9px;
+  font-family:'Shippori Mincho', serif; font-weight:800; font-size:18px;
+  padding: 8px 0;
+  border-radius: 12px;
   cursor:pointer;
 }
 .rank-btn:hover{ border-color: var(--gold); }
 .rank-btn.active{ background: var(--ember); color:#fff2e6; border-color: var(--ember-glow); }
-.satisfaction-label{ font-size:11.5px; color: var(--muted); }
+.satisfaction-label{ font-size:12.5px; color: var(--muted); line-height:1.5; }
 .satisfaction-input{
   width:100%;
   background: var(--surface-2);
   border:1px solid var(--line);
-  border-radius:8px;
-  padding: 9px 10px;
+  border-radius:12px;
+  padding: 10px 12px;
   color: var(--cream);
-  font-size:13.5px;
+  font-size:16px;
   font-family:'Noto Sans JP', sans-serif;
   resize: vertical;
-  min-height: 52px;
+  min-height: 48px;
 }
+/* 書く欄は3行ぶんの高さから。1行しか見えないと、書く気が起きない */
+textarea.satisfaction-input{ min-height: 84px; line-height:1.6; }
 .satisfaction-input::placeholder{ color: var(--muted); }
 .satisfaction-input:focus{ outline:2px solid var(--ember-glow); outline-offset:1px; }
 .satisfaction-submit{ width:100%; }
@@ -535,11 +570,12 @@ body{
 .tc-card-actions{ display:flex; gap:8px; flex-wrap:wrap; }
 .tc-btn{
   flex:1; min-width:96px;
+  min-height:52px;
   border:1px solid var(--line);
   background: var(--surface-2);
   color: var(--cream);
-  border-radius:10px; padding:11px 12px;
-  font-size:13.5px; font-weight:700; cursor:pointer;
+  border-radius:12px; padding:11px 12px;
+  font-size:15px; font-weight:700; cursor:pointer;
   font-family:'Noto Sans JP', sans-serif;
 }
 .tc-btn:disabled{ opacity:0.45; cursor:default; }
@@ -549,24 +585,30 @@ body{
 .tc-btn-break:hover:not(:disabled){ border-color: var(--gold); }
 .tc-btn-out:hover:not(:disabled){ border-color: var(--danger); color: var(--danger); }
 
-/* Tab toggle (勤怠画面の「打刻 / 管理・書き出し」で使用) */
+/* Tab toggle: スマホのアプリでよく見る「ひとつの枠の中で切り替える」形にする */
 .view-toggle{
-  display:flex; gap:8px;
-  margin-bottom:14px;
-}
-.view-toggle-btn{
-  flex:1;
+  display:flex; gap:4px;
+  margin-bottom:12px;
+  padding:4px;
   background: var(--surface);
   border:1px solid var(--line);
+  border-radius: 14px;
+}
+.view-toggle-btn{
+  flex:1; min-width:0;
+  min-height:42px;
+  background: none;
+  border:1px solid transparent;
   color: var(--muted);
-  font-size:12.5px; font-weight:700;
-  padding: 9px 0;
+  font-size:13.5px; font-weight:700;
+  padding: 6px 4px;
   border-radius: 10px;
   cursor:pointer;
   font-family:'Noto Sans JP', sans-serif;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.view-toggle-btn:hover{ border-color: var(--gold); }
-.view-toggle-btn.active{ background: var(--ember); color:#fff2e6; border-color: var(--ember-glow); }
+.view-toggle-btn:hover{ color: var(--cream); }
+.view-toggle-btn.active{ background: var(--ember); color:#fff2e6; border-color: var(--ember-glow); box-shadow: 0 2px 10px -4px rgba(255,140,66,0.6); }
 
 /* 前日分の報告業務チェック */
 .report-q{
@@ -576,11 +618,12 @@ body{
 .report-choice{ display:flex; gap:8px; }
 .report-choice-btn{
   flex:1;
+  min-height:48px;
   background: var(--surface-2);
   border:1px solid var(--line);
   color: var(--cream);
-  border-radius:10px; padding:11px 12px;
-  font-size:13.5px; font-weight:700; cursor:pointer;
+  border-radius:12px; padding:11px 12px;
+  font-size:15px; font-weight:700; cursor:pointer;
   font-family:'Noto Sans JP', sans-serif;
 }
 .report-choice-btn:hover{ border-color: var(--gold); }
@@ -675,10 +718,11 @@ body{
   display:flex; align-items:flex-end; justify-content:center;
 }
 .rv-sheet{
-  width:100%; max-width:480px; max-height:88vh; overflow-y:auto;
+  width:100%; max-width:480px; max-height:88vh; overflow-y:auto; overscroll-behavior: contain;
   background: var(--surface); border:1px solid var(--line);
-  border-radius:16px 16px 0 0;
+  border-radius:20px 20px 0 0;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  animation: menu-up 160ms ease-out;
 }
 .rv-sheet-head{
   display:flex; align-items:flex-start; gap:12px;
@@ -1311,7 +1355,7 @@ body{
 .done-banner.show{ display:block; }
 
 .empty-hint{
-  padding: 14px 16px; font-size:13px; color: var(--muted);
+  padding: 14px 16px; font-size:14px; color: var(--muted); line-height:1.6;
 }
 
 button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-visible{
@@ -1372,7 +1416,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
   border-top: 1px solid var(--line);
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
-  padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -10px 24px -16px rgba(0,0,0,0.6);
 }
 @media (min-width: 520px){
@@ -1380,21 +1424,24 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
 }
 .nav a, .nav-more{
   flex:1 1 0; min-width:0;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  min-height:48px;
-  padding: 5px 2px;
-  border-radius: 10px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  min-height:54px;
+  padding: 6px 2px;
+  border-radius: 12px;
   color: var(--muted);
-  font-size:10px; font-weight:700;
+  /* 幅320pxの小さいスマホでも「お客様評価」が切れないよう、画面幅に合わせて10〜11px */
+  font-size:clamp(10px, 2.8vw, 11px); font-weight:700;
   text-decoration:none;
   background:none; border:none; cursor:pointer;
   font-family:'Noto Sans JP', sans-serif;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  position:relative;
 }
-.nav-icon{ font-size:17px; line-height:1; }
+.nav a:active, .nav-more:active{ background: rgba(255,255,255,0.04); }
+.nav-icon{ font-size:20px; line-height:1; }
 .nav-label{ white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
-.nav a.active, .nav-more.active{ color: var(--ember-glow); }
+.nav a.active, .nav-more.active{ color: var(--ember-glow); background: rgba(232,98,44,0.12); }
 .nav a.active .nav-icon, .nav-more.active .nav-icon{ filter: drop-shadow(0 0 6px rgba(255,140,66,0.55)); }
 
 /* メニュー: 親指の届く下から出る。2列で1つ56px以上。 */
@@ -1405,10 +1452,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
 }
 .menu-sheet{
   width:100%; max-width:480px;
+  max-height: 88vh; overflow-y:auto; overscroll-behavior: contain;
   background: var(--surface); border:1px solid var(--line);
-  border-radius:16px 16px 0 0;
+  border-radius:20px 20px 0 0;
   /* 下のタブに重ならないよう、タブの高さぶん空ける */
-  padding: 0 12px calc(78px + env(safe-area-inset-bottom, 0px));
+  padding: 0 12px calc(84px + env(safe-area-inset-bottom, 0px));
   animation: menu-up 160ms ease-out;
 }
 @keyframes menu-up{ from{ transform: translateY(24px); opacity:0; } to{ transform:none; opacity:1; } }
@@ -1948,3 +1996,83 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-v
 .cs-yield-note{ font-size:11px; color: var(--muted); }
 .cs-yield-result{ font-size:13px; color: var(--cream); }
 .cs-yield-result strong{ color: var(--gold); }
+
+/* =========================================================
+   スマホで使いやすくするための調整(2026年9月)
+   ・入力欄は16px以上: iPhoneは16px未満の欄をタップすると画面を勝手に拡大し、戻らない
+   ・押すところは高さ44px以上: 指(手袋)で押しても隣を押さない大きさ
+   ・小さすぎる文字を読める大きさへ
+   元に戻したいときは、この塊と一緒に入った変更をまとめて戻せる
+   ========================================================= */
+
+/* 入力欄はぜんぶ16px(拡大されないため)。細い欄も含めて、ここで一括で決める */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+select,
+textarea{
+  font-size:16px !important;
+}
+
+/* 押すところの大きさ */
+.tc-month-btn{ width:44px; height:44px; border-radius:12px; font-size:14px; }
+.rv-date-label{ min-height:52px; }
+.rv-today-hint{ font-size:11.5px; }
+.visit-row-head{ min-height:48px; }
+.pending-import-btn{ min-height:40px; padding: 8px 14px; font-size:13px; border-radius:20px; }
+.table-chip{ min-height:44px; }
+.menu-chip{ min-height:44px; padding: 8px 16px; font-size:14px; }
+.order-complete-btn{ min-height:40px; padding: 8px 16px; font-size:13px; }
+.chat-send-btn{ min-height:48px; padding: 10px 18px; font-size:14px; border-radius:12px; }
+.meeting-action-btn{ min-height:46px; font-size:13.5px; border-radius:12px; }
+.rf-more-link{ display:flex; align-items:center; justify-content:flex-end; min-height:44px; padding-top:0; font-size:13.5px; }
+.staff-post-btn, .staff-rename-btn{ min-height:40px; padding: 8px 14px; font-size:12.5px; }
+.del-btn, .category-del-btn{ width:40px; height:40px; font-size:18px; }
+.staff-row .del-btn{ margin-left:auto; }
+.qty-stepper button{ width:44px; height:44px; font-size:20px; }
+.qty-stepper span{ font-size:20px; min-width:28px; }
+.visit-delete-btn{ min-height:44px; padding: 8px 4px; font-size:13px; }
+.st-btn{ border-radius:12px; font-size:14px; }
+.rv-seat-btn{ min-height:44px; font-size:14px; }
+.qty-toggle{ min-height:40px; padding: 8px 14px; font-size:13px; }
+.order-btn{ width:40px; height:30px; font-size:12px; }
+.order-btns{ gap:4px; }
+.edit-toggle, .next-guest-btn, .tc-btn, .report-choice-btn, .view-toggle-btn, .rank-btn,
+.st-btn, .menu-chip, .table-chip, .pending-import-btn, .meeting-action-btn, .qty-toggle,
+.reset-btn, .restore-btn, .chat-send-btn, .order-complete-btn, .rv-seat-btn, .tc-month-btn{
+  transition: transform 0.08s ease, background 0.15s, border-color 0.15s, color 0.15s;
+}
+/* 押した瞬間に少し沈む。押せたかどうかが指で分かる */
+.edit-toggle:active, .next-guest-btn:not(:disabled):active, .tc-btn:not(:disabled):active,
+.report-choice-btn:active, .view-toggle-btn:active, .rank-btn:active, .st-btn:not(:disabled):active,
+.menu-chip:active, .table-chip:active, .pending-import-btn:not(:disabled):active,
+.meeting-action-btn:active, .qty-toggle:active, .reset-btn:active, .restore-btn:active,
+.chat-send-btn:not(:disabled):active, .order-complete-btn:active, .rv-seat-btn:active,
+.tc-month-btn:active, .qty-stepper button:active{
+  transform: scale(0.97);
+}
+
+.bulk-add button, .add-category button{ min-height:44px; padding: 10px 20px; font-size:14px; border-radius:12px; }
+.add-category-badge, .add-category-name, .add-category-sub, .bulk-add textarea{ min-height:44px; border-radius:10px; }
+.rf-foot{ font-size:12.5px; }
+.rf-foot a{ display:inline-block; padding: 10px 2px; }
+
+/* 小さすぎた文字 */
+.x-status, .tc-chip{ font-size:11.5px; padding:5px 11px; }
+.history-table{ font-size:12px; }
+.history-text{ font-size:14px; }
+.note-badge{ font-size:11px; }
+.note-text{ font-size:14px; }
+.staff-post-hint{ font-size:12.5px; }
+.rf-date{ font-size:12.5px; }
+.sh-staff-select{ width:100px; }
+.tc-card-times{ font-size:13.5px; }
+.tc-name{ font-size:17px; }
+.recorder-error{ font-size:13.5px; line-height:1.6; }
+
+/* 下から出る画面(シート)の上に「つまみ」を付けて、閉じられる画面だと分かるようにする */
+.menu-sheet::before, .rv-sheet::before{
+  content:"";
+  display:block;
+  width:40px; height:5px; border-radius:3px;
+  background: var(--line);
+  margin: 8px auto 0;
+}
