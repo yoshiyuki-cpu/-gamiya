@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { SUMMARY_DAYS, legacyNoteText, useLegacyDailyNotes, useReflections } from '@/hooks/useReflections'
 import type { Reflection } from '@/lib/supabase'
-import { KIND_ICON, KIND_LABEL, byStaff, dateLabel, groupByDate } from '@/lib/reflections'
+import { KIND_ICON, KIND_LABEL, byStaff, dateLabel, groupByDate, rowsForStaff } from '@/lib/reflections'
 import { recentBusinessDayKeys } from '@/lib/checklist'
 
 export const dynamic = 'force-dynamic'
@@ -101,6 +101,7 @@ function Row({
 export default function ReflectionsPage() {
   const { loading, saving, rows, counts, loadError, editBody, hide } = useReflections()
   const [view, setView] = useState<View>('all')
+  const [openStaff, setOpenStaff] = useState<string | null>(null)
 
   // 議事録に残っている昔の「良かった事・悪かった事」も、日ごとの中に読むだけで並べる。
   const legacy = useLegacyDailyNotes()
@@ -113,6 +114,7 @@ export default function ReflectionsPage() {
     return [...base, ...extra].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
   }, [rows, legacy])
   const staff = useMemo(() => byStaff(rows, sinceKey), [rows, sinceKey])
+  const openStaffRows = useMemo(() => (openStaff ? rowsForStaff(rows, openStaff, sinceKey) : []), [openStaff, rows, sinceKey])
 
   if (loading) {
     return (
@@ -194,17 +196,44 @@ export default function ReflectionsPage() {
             <div className="empty-hint">まだ記録がありません。</div>
           ) : (
             <div className="rf-staff">
-              {staff.map((s) => (
-                <div key={s.name} className="rf-staff-row">
-                  <span className="rf-staff-name">{s.name}</span>
-                  <span className="rf-staff-count">
-                    {KIND_ICON.good}{s.good} <span className="rf-staff-label">{KIND_LABEL.good}</span>
-                  </span>
-                  <span className="rf-staff-count">
-                    {KIND_ICON.bad}{s.bad} <span className="rf-staff-label">{KIND_LABEL.bad}</span>
-                  </span>
-                </div>
-              ))}
+              {staff.map((s) => {
+                const isOpen = openStaff === s.name
+                return (
+                  <div key={s.name} className="rf-staff-block">
+                    <button
+                      type="button"
+                      className="rf-staff-row"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpenStaff((cur) => (cur === s.name ? null : s.name))}
+                    >
+                      <span className="rf-staff-name">{s.name}</span>
+                      <span className="rf-staff-count">
+                        {KIND_ICON.good}{s.good} <span className="rf-staff-label">{KIND_LABEL.good}</span>
+                      </span>
+                      <span className="rf-staff-count">
+                        {KIND_ICON.bad}{s.bad} <span className="rf-staff-label">{KIND_LABEL.bad}</span>
+                      </span>
+                      <span className="rf-item-arrow" aria-hidden="true">
+                        {isOpen ? '▲' : '▼'}
+                      </span>
+                    </button>
+                    {isOpen ? (
+                      <div className="rf-list rf-staff-detail">
+                        {openStaffRows.length === 0 ? (
+                          <div className="empty-hint">まだ記録がありません。</div>
+                        ) : (
+                          openStaffRows.map((r) => (
+                            <div key={r.id} className="rf-dated">
+                              <span className="rf-date">{dateLabel(r.note_date)}</span>
+                              <Row row={r} saving={saving} onEdit={editBody} onHide={hide} />
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
