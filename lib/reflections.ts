@@ -89,6 +89,18 @@ export function byStaff(rows: ReflectionLike[], sinceKey?: string): StaffCount[]
   return [...map.values()].sort((a, b) => b.good + b.bad - (a.good + a.bad) || a.name.localeCompare(b.name, 'ja'))
 }
 
+/** その人が書いたものだけ、新しい順。byStaffと同じ名前のまとめ方・絞り込み。 */
+export function rowsForStaff<T extends ReflectionLike>(rows: T[], name: string, sinceKey?: string): T[] {
+  return rows
+    .filter((r) => {
+      if (r.hidden) return false
+      if (sinceKey && r.note_date < sinceKey) return false
+      const rowName = (r.staff_name ?? '').trim() || '名前なし'
+      return rowName === name
+    })
+    .sort((a, b) => (a.note_date < b.note_date ? 1 : a.note_date > b.note_date ? -1 : b.id - a.id))
+}
+
 const WEEKDAY = ['日', '月', '火', '水', '木', '金', '土']
 
 /** '2026-09-06' → '9/6(日)' */
