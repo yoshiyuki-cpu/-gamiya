@@ -255,6 +255,8 @@ export type GuestSatisfactionRecord = {
   reservation_time: string | null
   visit_reason: string | null
   impression: string | null
+  // 常連さん。SQL未実行の間は列ごと無い。
+  is_regular?: boolean
   created_at: string
   updated_at: string
 }

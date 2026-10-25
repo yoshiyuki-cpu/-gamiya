@@ -1,8 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useGuestStats, PERIODS, PERIOD_LABEL } from '@/hooks/useGuestStats'
+import type { StatsPeriod } from '@/hooks/useGuestStats'
 import { useGuestVisits } from '@/hooks/useGuestVisits'
 import type { VisitPatch } from '@/hooks/useGuestVisits'
+import { percent } from '@/lib/guestStats'
+import type { Tally } from '@/lib/guestStats'
 import { seatsLabel, slotLabel } from '@/lib/reservations'
 import type { GuestSatisfactionRecord, SatisfactionRank } from '@/lib/supabase'
 
@@ -25,6 +29,7 @@ function VisitEditor({
   const [table, setTable] = useState(visit.table_number ?? '')
   const [visitReason, setVisitReason] = useState(visit.visit_reason ?? '')
   const [impression, setImpression] = useState(visit.impression ?? '')
+  const [isRegular, setIsRegular] = useState(visit.is_regular ?? false)
 
   return (
     <div className="visit-editor">
@@ -60,6 +65,15 @@ function VisitEditor({
           </button>
         ))}
       </div>
+      {visit.is_regular !== undefined ? (
+        <label className={`regular-check${isRegular ? ' checked' : ''}`}>
+          <input type="checkbox" checked={isRegular} onChange={(e) => setIsRegular(e.target.checked)} />
+          <span className="regular-check-box" aria-hidden="true">
+            {isRegular ? '✓' : ''}
+          </span>
+          <span className="regular-check-text">常連さん</span>
+        </label>
+      ) : null}
       <label className="satisfaction-label">来客動機</label>
       <textarea
         className="satisfaction-input"
@@ -85,6 +99,7 @@ function VisitEditor({
             table_number: table.trim() || null,
             visit_reason: visitReason.trim() || null,
             impression: impression.trim() || null,
+            ...(visit.is_regular !== undefined ? { is_regular: isRegular } : {}),
           })
         }
       >
@@ -93,6 +108,44 @@ function VisitEditor({
       <button className="visit-delete-btn" type="button" onClick={onDelete}>
         この組を削除
       </button>
+    </div>
+  )
+}
+
+function TallyPercent({ part, whole }: { part: number; whole: number }) {
+  const p = percent(part, whole)
+  return p == null ? null : <span className="gs-pct"> ({p}%)</span>
+}
+
+function BandCard({ label, tally, all, highlight }: { label: string; tally: Tally; all: number; highlight?: boolean }) {
+  const share = percent(tally.groups, all)
+  const regularShare = percent(tally.regular, tally.groups)
+  return (
+    <div className={`gs-band${highlight ? ' gs-band-key' : ''}`}>
+      <div className="gs-band-head">
+        <span className="gs-band-label">{label}</span>
+        <span className="gs-band-groups">
+          <strong>{tally.groups}</strong>組{share != null ? <span className="gs-pct"> 全体の{share}%</span> : null}
+        </span>
+      </div>
+      <div className="gs-bar" aria-hidden="true">
+        <span className="gs-bar-regular" style={{ width: `${regularShare ?? 0}%` }} />
+      </div>
+      <div className="gs-band-foot">
+        {tally.groups === 0 ? (
+          <span>この時間帯の組はありません</span>
+        ) : (
+          <>
+            <span>
+              常連さん <strong>{tally.regular}組</strong>
+              {regularShare != null ? ` (${regularShare}%)` : ''}
+            </span>
+            <span>
+              それ以外 <strong>{tally.groups - tally.regular}組</strong>
+            </span>
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -117,6 +170,10 @@ export default function GuestsPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   // 取り込み中の二度押しを防ぐ。忙しい時間帯に連打されがちなため。
   const [importing, setImporting] = useState(false)
+  const [saveNotice, setSaveNotice] = useState<string | null>(null)
+  const [period, setPeriod] = useState<StatsPeriod>('today')
+  const statsKey = visits.map((v) => `${v.id}:${v.reservation_time ?? ''}:${v.is_regular ? 1 : 0}`).join(',')
+  const { loading: statsLoading, available: statsAvailable, stats } = useGuestStats(period, statsKey)
 
   if (loading) {
     return (
@@ -161,6 +218,8 @@ export default function GuestsPage() {
           </div>
         </div>
       </div>
+
+      {saveNotice ? <div className="recorder-error">{saveNotice}</div> : null}
 
       <div className={`done-banner${allRated ? ' show' : ''}`}>✅ 本日の全組に評価がつきました!</div>
 
@@ -269,6 +328,7 @@ export default function GuestsPage() {
                     <span className="unrated-chip">未評価</span>
                   )}
                   <span className="visit-name">{v.reservation_name ?? '(名前なし)'}</span>
+                  {v.is_regular ? <span className="regular-chip">常連</span> : null}
                   {v.reservation_id != null ? <span className="from-rv-chip">予約</span> : null}
                   {v.reservation_time ? <span className="visit-time">{v.reservation_time}</span> : null}
                   {v.table_number ? <span className="history-table">卓{v.table_number}</span> : null}
@@ -287,7 +347,13 @@ export default function GuestsPage() {
                     key={v.id}
                     visit={v}
                     onSave={(patch) => {
-                      updateVisit(v.id, patch)
+                      void updateVisit(v.id, patch).then((r) => {
+                        setSaveNotice(
+                          r.regularSaved || patch.is_regular === undefined
+                            ? null
+                            : '評価は保存しましたが、常連さんのチェックは保存できませんでした。Supabaseで supabase-migration-regular-guests.sql を実行してください。',
+                        )
+                      })
                       setExpandedId(null)
                     }}
                     onDelete={() => {
@@ -301,6 +367,66 @@ export default function GuestsPage() {
               </div>
             )
           })}
+        </div>
+      </div>
+
+      <div className="category">
+        <div className="category-head">
+          <div className="badge">率</div>
+          <div>
+            <div className="category-name">組数の割合</div>
+            <div className="category-sub">時間帯ごとの組数と、常連さんの割合</div>
+          </div>
+        </div>
+        <div className="satisfaction-body">
+          <div className="gs-period" role="group" aria-label="期間">
+            {PERIODS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`gs-period-btn${period === p ? ' active' : ''}`}
+                onClick={() => setPeriod(p)}
+              >
+                {PERIOD_LABEL[p]}
+              </button>
+            ))}
+          </div>
+
+          {!statsAvailable ? (
+            <div className="recorder-error">
+              常連さんの列がまだありません。Supabaseで supabase-migration-regular-guests.sql を実行してください。
+            </div>
+          ) : null}
+
+          {statsLoading ? (
+            <div className="empty-hint">集計中…</div>
+          ) : stats.total.groups === 0 ? (
+            <div className="empty-hint">この期間の組はまだありません。</div>
+          ) : (
+            <>
+              <div className="gs-total">
+                <span>{PERIOD_LABEL[period]}の合計</span>
+                <strong>{stats.total.groups}組</strong>
+                <span>
+                  うち常連さん <strong>{stats.total.regular}組</strong>
+                  <TallyPercent part={stats.total.regular} whole={stats.total.groups} />
+                </span>
+              </div>
+
+              <div className="gs-bands">
+                {stats.bands.map(({ band, tally }) => (
+                  <BandCard key={band.id} label={band.label} tally={tally} all={stats.total.groups} highlight />
+                ))}
+                <BandCard label="それ以外の時間" tally={stats.other} all={stats.total.groups} />
+                {stats.noTime.groups > 0 ? (
+                  <BandCard label="時間が未入力" tally={stats.noTime} all={stats.total.groups} />
+                ) : null}
+              </div>
+              <div className="footer-note">
+                ご予約時間で数えています。「17:00〜18:00」は18:00ちょうどを含まず、「22:00〜25:00」は25:00ちょうどを含みません(25:00 = 翌1:00)。割合は四捨五入です。
+              </div>
+            </>
+          )}
         </div>
       </div>
 

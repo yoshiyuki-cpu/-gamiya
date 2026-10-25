@@ -18,6 +18,11 @@ export type VisitPatch = {
   table_number?: string | null
   visit_reason?: string | null
   impression?: string | null
+  is_regular?: boolean
+}
+
+function isRegularColumnMissing(error: { message?: string } | null): boolean {
+  return /is_regular/.test(error?.message ?? '') && /column|schema cache/i.test(error?.message ?? '')
 }
 
 function sortVisits(rows: GuestSatisfactionRecord[]): GuestSatisfactionRecord[] {
@@ -136,10 +141,19 @@ export function useGuestVisits() {
   }, [visits, todayReservations, importReservation])
 
   const updateVisit = useCallback(
-    async (id: number, patch: VisitPatch) => {
+    // 常連さんの列がまだ無い(SQL未実行)ときは、その項目だけ諦めて、ほかの評価は必ず保存する。
+    async (id: number, patch: VisitPatch): Promise<{ regularSaved: boolean }> => {
       setVisits((prev) => sortVisits(prev.map((v) => (v.id === id ? { ...v, ...patch } : v))))
-      const { data } = await supabase.from('guest_satisfaction_records').update(patch).eq('id', id).select().single()
-      if (data) applyVisit(data as GuestSatisfactionRecord)
+      let regularSaved = patch.is_regular !== undefined
+      let result = await supabase.from('guest_satisfaction_records').update(patch).eq('id', id).select().single()
+      if (result.error && patch.is_regular !== undefined && isRegularColumnMissing(result.error)) {
+        regularSaved = false
+        const { is_regular: _unused, ...rest } = patch
+        void _unused
+        result = await supabase.from('guest_satisfaction_records').update(rest).eq('id', id).select().single()
+      }
+      if (result.data) applyVisit(result.data as GuestSatisfactionRecord)
+      return { regularSaved }
     },
     [applyVisit],
   )
