@@ -13,7 +13,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function ReportsPage() {
-  const { reports, loading, generating, error, generateTodayReport } = useDailyReports()
+  const { reports, loading, generating, error, notice, generateTodayReport } = useDailyReports()
 
   if (loading) {
     return (
@@ -41,6 +41,7 @@ export default function ReportsPage() {
       </div>
 
       {error ? <div className="recorder-error">{error}</div> : null}
+      {notice ? <div className="empty-hint">{notice}</div> : null}
 
       <ReportCheckCard />
 

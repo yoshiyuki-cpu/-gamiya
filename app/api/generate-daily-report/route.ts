@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { businessDayRange, todayKey } from '@/lib/checklist'
+import { buildReflectionMail, sendReflectionMail } from '@/lib/reflectionMail'
 
 // See app/api/transcribe-meeting/route.ts for why the placeholder fallback is needed.
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || 'placeholder-anthropic-key' })
@@ -106,7 +107,13 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error) throw error
-    return NextResponse.json(data)
+
+    // 日報ができたら、その日の全員の良かった事・悪かった事をメールでも送る。
+    // メールの失敗で日報づくりを止めないよう、結果だけ返す。
+    const mailBody = buildReflectionMail(reportDate, reflections ?? [], process.env.NEXT_PUBLIC_APP_URL)
+    const mail = await sendReflectionMail(mailBody.subject, mailBody.text)
+
+    return NextResponse.json({ ...data, mail })
   } catch (err) {
     console.error('generate-daily-report error', err)
     return NextResponse.json({ error: '日報の作成に失敗しました' }, { status: 500 })
