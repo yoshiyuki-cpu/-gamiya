@@ -10,6 +10,7 @@ export function useDailyReports() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const applyReport = useCallback((row: DailyReport) => {
     setReports((prev) => {
@@ -56,6 +57,7 @@ export function useDailyReports() {
   const generateTodayReport = useCallback(async () => {
     setGenerating(true)
     setError(null)
+    setNotice(null)
     try {
       const res = await fetch('/api/generate-daily-report', {
         method: 'POST',
@@ -64,7 +66,15 @@ export function useDailyReports() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || '日報の作成に失敗しました')
-      applyReport(json as DailyReport)
+      const { mail, ...report } = json as DailyReport & { mail?: { status: string; to?: string[] } }
+      applyReport(report as DailyReport)
+      if (mail?.status === 'sent') {
+        setNotice(`日報をつくりました。全員の良かった事・悪かった事を ${(mail.to ?? []).join('、')} にメールしました。`)
+      } else if (mail?.status === 'failed') {
+        setNotice('日報はつくりましたが、良かった事・悪かった事のメールを送れませんでした。')
+      } else if (mail?.status === 'not_configured') {
+        setNotice('日報はつくりました。メールの設定がまだのため、良かった事・悪かった事のメールは送っていません。')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '日報の作成に失敗しました')
     } finally {
@@ -72,5 +82,5 @@ export function useDailyReports() {
     }
   }, [applyReport])
 
-  return { reports, loading, generating, error, generateTodayReport }
+  return { reports, loading, generating, error, notice, generateTodayReport }
 }
