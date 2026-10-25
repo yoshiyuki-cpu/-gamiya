@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import type { Category, DailyRecord, Item } from '@/lib/supabase'
+import { isRefillItemText } from '@/lib/refills'
 import ItemRow from './ItemRow'
+import RefillTally from './RefillTally'
 
 type Props = {
   category: Category
@@ -81,22 +83,24 @@ export default function CategoryCard({
           <div className="empty-hint">項目がありません。下から追加してください。</div>
         ) : null}
         {sortedItems.map((item, idx) => (
-          <ItemRow
-            key={item.id}
-            item={item}
-            record={dailyRecords.get(item.id)}
-            editMode={editMode}
-            isFirst={idx === 0}
-            isLast={idx === sortedItems.length - 1}
-            staffList={staffList}
-            onToggleCheck={onToggleCheck}
-            onSetQuantity={onSetQuantity}
-            onSetItemStaff={onSetItemStaff}
-            onMove={(direction) => onMoveItem(category.id, item.id, direction)}
-            onToggleQuantityMode={() => onToggleQuantityMode(item.id)}
-            onToggleNoteMode={() => onToggleNoteMode(item.id)}
-            onDelete={() => onDeleteItem(item.id)}
-          />
+          <Fragment key={item.id}>
+            <ItemRow
+              item={item}
+              record={dailyRecords.get(item.id)}
+              editMode={editMode}
+              isFirst={idx === 0}
+              isLast={idx === sortedItems.length - 1}
+              staffList={staffList}
+              onToggleCheck={onToggleCheck}
+              onSetQuantity={onSetQuantity}
+              onSetItemStaff={onSetItemStaff}
+              onMove={(direction) => onMoveItem(category.id, item.id, direction)}
+              onToggleQuantityMode={() => onToggleQuantityMode(item.id)}
+              onToggleNoteMode={() => onToggleNoteMode(item.id)}
+              onDelete={() => onDeleteItem(item.id)}
+            />
+            {!editMode && isRefillItemText(item.text) ? <RefillTally /> : null}
+          </Fragment>
         ))}
         {editMode ? (
           <div className="bulk-add">
