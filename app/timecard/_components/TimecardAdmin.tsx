@@ -20,7 +20,7 @@ function csvCell(value: string): string {
 }
 
 function buildCsv(items: MonthEntry[]): string {
-  const header = ['日付', 'スタッフ名', '出勤', '退勤', '休憩', '実労働', '実労働(時間)', 'ドリンクおかわり(杯)', '備考']
+  const header = ['日付', 'スタッフ名', '出勤', '退勤', '休憩', '実労働', '実労働(時間)', 'ドリンクおかわり(杯)', '身だしなみ確認の相手', '備考']
   const rows = items.map(({ entry, breaks }) => {
     const worked = entry.clock_out ? workedMs(entry, breaks) : 0
     return [
@@ -32,6 +32,7 @@ function buildCsv(items: MonthEntry[]): string {
       entry.clock_out ? durationLabel(worked) : '',
       entry.clock_out ? durationHours(worked) : '',
       entry.drink_refills != null ? String(entry.drink_refills) : '',
+      entry.hygiene_partner ?? '',
       entry.note ?? '',
     ]
   })
