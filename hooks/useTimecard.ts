@@ -22,6 +22,12 @@ const STAFF_NAME_TABLES = ['daily_records', 'time_entries', 'wall_orders', 'x_po
 
 export type RenameResult = { ok: true; merged: boolean } | { ok: false; error: string }
 export type StaffResult = { ok: true } | { ok: false; error: string }
+export type ClockOutResult = { ok: true; refillsSaved: boolean } | { ok: false; error: string }
+
+function isRefillColumnMissing(error: { message?: string } | null): boolean {
+  const message = error?.message ?? ''
+  return /drink_refills/.test(message) && /column|schema cache/i.test(message)
+}
 
 function describeStaffError(error: { code?: string; message?: string } | null): string {
   const message = error?.message ?? ''
@@ -121,17 +127,32 @@ export function useTimecard() {
     [workDate, reload],
   )
 
+  /**
+   * 退勤。ドリンクのおかわり杯数も同じ更新で残す。
+   * 杯数の列がまだ無い(SQL未実行)ときは、杯数だけ諦めて退勤は必ず通す。
+   */
   const clockOut = useCallback(
-    async (row: StaffRow) => {
-      if (!row.entry) return
+    async (row: StaffRow, drinkRefills?: number): Promise<ClockOutResult> => {
+      if (!row.entry) return { ok: false, error: '出勤の記録が見つかりません。' }
       setBusy(row.name)
       try {
         // 休憩に入ったまま退勤した場合に休憩が開きっぱなしにならないよう、先に閉じる。
         const open = row.breaks.find((b) => !b.break_end)
         const now = new Date().toISOString()
         if (open) await supabase.from('time_breaks').update({ break_end: now }).eq('id', open.id)
-        await supabase.from('time_entries').update({ clock_out: now }).eq('id', row.entry.id)
+
+        let refillsSaved = drinkRefills !== undefined
+        let { error } = await supabase
+          .from('time_entries')
+          .update(drinkRefills === undefined ? { clock_out: now } : { clock_out: now, drink_refills: drinkRefills })
+          .eq('id', row.entry.id)
+        if (error && isRefillColumnMissing(error)) {
+          refillsSaved = false
+          ;({ error } = await supabase.from('time_entries').update({ clock_out: now }).eq('id', row.entry.id))
+        }
         await reload()
+        if (error) return { ok: false, error: `退勤を保存できませんでした(${error.message})。もう一度押してください。` }
+        return { ok: true, refillsSaved }
       } finally {
         setBusy(null)
       }
@@ -307,7 +328,7 @@ export function useTimecardMonth(monthKey: string) {
   )
 
   const updateEntry = useCallback(
-    async (id: number, patch: Partial<Pick<TimeEntry, 'clock_in' | 'clock_out' | 'note'>>) => {
+    async (id: number, patch: Partial<Pick<TimeEntry, 'clock_in' | 'clock_out' | 'note' | 'drink_refills'>>) => {
       await supabase.from('time_entries').update(patch).eq('id', id)
       await reload()
     },

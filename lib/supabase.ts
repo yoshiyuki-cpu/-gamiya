@@ -52,6 +52,8 @@ export type TimeEntry = {
   clock_in: string | null
   clock_out: string | null
   note: string | null
+  // 退勤のときに入れた、ドリンクのおかわり杯数。SQL未実行の間は列ごと無い。
+  drink_refills?: number | null
   created_at: string
   updated_at: string
 }

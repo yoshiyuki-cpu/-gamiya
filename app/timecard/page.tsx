@@ -6,9 +6,9 @@ import { useReflections } from '@/hooks/useReflections'
 import { useTimecard } from '@/hooks/useTimecard'
 import type { StaffRow } from '@/hooks/useTimecard'
 import { todayLabelText } from '@/lib/checklist'
-import type { ReflectionKind } from '@/lib/supabase'
 import { breakMs, durationLabel, timeLabel, workedMs } from '@/lib/timecard'
 import ClockOutSheet from './_components/ClockOutSheet'
+import type { ClockOutInput } from './_components/ClockOutSheet'
 import PostCheckSheet from './_components/PostCheckSheet'
 import StaffManager from './_components/StaffManager'
 import TimecardAdmin from './_components/TimecardAdmin'
@@ -56,6 +56,7 @@ function StaffCard({
           <span>出勤 {timeLabel(entry.clock_in)}</span>
           {entry.clock_out ? <span>退勤 {timeLabel(entry.clock_out)}</span> : null}
           {breaks.length > 0 ? <span>休憩 {durationLabel(breakMs(breaks, now))}</span> : null}
+          {entry.clock_out && entry.drink_refills != null ? <span>おかわり {entry.drink_refills}杯</span> : null}
           <span className="tc-card-worked">実働 {durationLabel(workedMs(entry, breaks, now))}</span>
         </div>
       ) : null}
@@ -110,11 +111,12 @@ export default function TimecardPage() {
   const [tab, setTab] = useState<'punch' | 'admin'>('punch')
   const [now, setNow] = useState(() => Date.now())
 
-  // 退勤の前に「今日の良かった事・悪かった事」を1つ書いてもらう。
-  // その人が今日もう書いていれば、そのまま退勤できる。
-  // ふりかえりの表がまだ無い(SQL未実行)ときは、退勤を止めない。
+  // 退勤の前に、ドリンクのおかわりの杯数を毎回入れてもらう。
+  // あわせて「今日の良かった事・悪かった事」を1つ書いてもらう(その人が今日もう書いていれば不要)。
+  // ふりかえりの表がまだ無い(SQL未実行)ときは、ふりかえりのほうは求めない。
   const reflections = useReflections()
   const [pendingOut, setPendingOut] = useState<StaffRow | null>(null)
+  const [clockOutNotice, setClockOutNotice] = useState<string | null>(null)
 
   // 店長・赤木の出勤の前に「ポストの確認をしました」を押させる。
   // 1日1回、どちらかが押せば残りの人は出せる(共有の確認)。
@@ -147,27 +149,31 @@ export default function TimecardPage() {
     await clockIn(row.name)
   }, [pendingIn, postCheck, clockIn])
 
-  const requestClockOut = useCallback(
-    (row: StaffRow) => {
-      const name = row.name.trim()
-      const wroteToday = reflections.today.some((r) => (r.staff_name ?? '').trim() === name)
-      if (wroteToday || reflections.loadError) {
-        void clockOut(row)
-        return
-      }
-      setPendingOut(row)
-    },
-    [reflections.today, reflections.loadError, clockOut],
-  )
+  const requestClockOut = useCallback((row: StaffRow) => {
+    setClockOutNotice(null)
+    setPendingOut(row)
+  }, [])
+
+  const needsReflection = pendingOut
+    ? !reflections.loadError && !reflections.today.some((r) => (r.staff_name ?? '').trim() === pendingOut.name.trim())
+    : false
 
   const saveAndClockOut = useCallback(
-    async (kind: ReflectionKind, body: string) => {
+    async (input: ClockOutInput) => {
       if (!pendingOut) return { ok: false as const, error: 'もう一度「退勤」を押してください。' }
-      const result = await reflections.add(kind, body, pendingOut.name)
+      if (input.reflection) {
+        const saved = await reflections.add(input.reflection.kind, input.reflection.body, pendingOut.name)
+        if (!saved.ok) return saved
+      }
+      const result = await clockOut(pendingOut, input.refills)
       if (!result.ok) return result
       setPendingOut(null)
-      await clockOut(pendingOut)
-      return result
+      if (!result.refillsSaved) {
+        setClockOutNotice(
+          '退勤は記録しましたが、おかわりの杯数は保存できませんでした。Supabaseで supabase-migration-drink-refills.sql を実行してください。',
+        )
+      }
+      return { ok: true as const }
     },
     [pendingOut, reflections, clockOut],
   )
@@ -221,6 +227,8 @@ export default function TimecardPage() {
         </button>
       </div>
 
+      {clockOutNotice ? <div className="recorder-error">{clockOutNotice}</div> : null}
+
       {tab === 'punch' ? (
         <>
           <div className="tc-list">
@@ -267,6 +275,7 @@ export default function TimecardPage() {
         <ClockOutSheet
           staffName={pendingOut.name}
           saving={reflections.saving || busy === pendingOut.name}
+          needsReflection={needsReflection}
           onSave={saveAndClockOut}
           onClose={() => setPendingOut(null)}
         />

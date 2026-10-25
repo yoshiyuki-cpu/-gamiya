@@ -20,7 +20,7 @@ function csvCell(value: string): string {
 }
 
 function buildCsv(items: MonthEntry[]): string {
-  const header = ['日付', 'スタッフ名', '出勤', '退勤', '休憩', '実労働', '実労働(時間)', '備考']
+  const header = ['日付', 'スタッフ名', '出勤', '退勤', '休憩', '実労働', '実労働(時間)', 'ドリンクおかわり(杯)', '備考']
   const rows = items.map(({ entry, breaks }) => {
     const worked = entry.clock_out ? workedMs(entry, breaks) : 0
     return [
@@ -31,6 +31,7 @@ function buildCsv(items: MonthEntry[]): string {
       durationLabel(breakMs(breaks)),
       entry.clock_out ? durationLabel(worked) : '',
       entry.clock_out ? durationHours(worked) : '',
+      entry.drink_refills != null ? String(entry.drink_refills) : '',
       entry.note ?? '',
     ]
   })
@@ -47,7 +48,10 @@ function EntryEditor({
   onDeleteEntry,
 }: {
   item: MonthEntry
-  onUpdateEntry: (id: number, patch: { clock_in?: string | null; clock_out?: string | null; note?: string | null }) => void
+  onUpdateEntry: (
+    id: number,
+    patch: { clock_in?: string | null; clock_out?: string | null; note?: string | null; drink_refills?: number | null },
+  ) => void
   onMoveDate: (id: number, newWorkDate: string) => Promise<void>
   onUpdateBreak: (id: number, patch: { break_start?: string; break_end?: string | null }) => void
   onDeleteBreak: (id: number) => void
@@ -171,6 +175,25 @@ function EntryEditor({
         </div>
       ) : null}
 
+      {entry.drink_refills !== undefined ? (
+        <label className="tc-edit-field">
+          <span>ドリンクのおかわり(杯)</span>
+          <input
+            type="number"
+            min={0}
+            inputMode="numeric"
+            className="satisfaction-input tc-time-input"
+            placeholder="未入力"
+            defaultValue={entry.drink_refills ?? ''}
+            onChange={(e) => {
+              const v = e.target.value
+              if (v === '') onUpdateEntry(entry.id, { drink_refills: null })
+              else if (Number(v) >= 0) onUpdateEntry(entry.id, { drink_refills: Math.floor(Number(v)) })
+            }}
+          />
+        </label>
+      ) : null}
+
       <label className="tc-edit-field">
         <span>備考</span>
         <input
@@ -204,16 +227,17 @@ export default function TimecardAdmin() {
   const [openId, setOpenId] = useState<number | null>(null)
 
   const summary = useMemo(() => {
-    const map = new Map<string, { days: Set<string>; ms: number; open: number }>()
+    const map = new Map<string, { days: Set<string>; ms: number; open: number; refills: number }>()
     for (const { entry, breaks } of items) {
-      const row = map.get(entry.staff_name) ?? { days: new Set<string>(), ms: 0, open: 0 }
+      const row = map.get(entry.staff_name) ?? { days: new Set<string>(), ms: 0, open: 0, refills: 0 }
       row.days.add(entry.work_date)
+      row.refills += entry.drink_refills ?? 0
       if (entry.clock_out) row.ms += workedMs(entry, breaks)
       else row.open += 1
       map.set(entry.staff_name, row)
     }
     return Array.from(map.entries())
-      .map(([name, v]) => ({ name, days: v.days.size, ms: v.ms, open: v.open }))
+      .map(([name, v]) => ({ name, days: v.days.size, ms: v.ms, open: v.open, refills: v.refills }))
       .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
   }, [items])
 
@@ -268,6 +292,7 @@ export default function TimecardAdmin() {
                       <th>スタッフ</th>
                       <th>勤務日数</th>
                       <th>実労働</th>
+                      <th>おかわり</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -279,6 +304,7 @@ export default function TimecardAdmin() {
                           {durationLabel(s.ms)}
                           {s.open > 0 ? <span className="tc-warn-mark"> ※未退勤{s.open}件</span> : null}
                         </td>
+                        <td className="tc-num">{s.refills}杯</td>
                       </tr>
                     ))}
                   </tbody>
@@ -328,6 +354,7 @@ export default function TimecardAdmin() {
                     <span className="tc-times">
                       {timeLabel(item.entry.clock_in)}〜{item.entry.clock_out ? timeLabel(item.entry.clock_out) : '未退勤'}
                     </span>
+                    {item.entry.drink_refills != null ? <span className="tc-times">🍹{item.entry.drink_refills}</span> : null}
                     {item.entry.clock_out ? (
                       <span className="tc-worked">{durationLabel(worked)}</span>
                     ) : (
