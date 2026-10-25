@@ -22,7 +22,13 @@ const STAFF_NAME_TABLES = ['daily_records', 'time_entries', 'wall_orders', 'x_po
 
 export type RenameResult = { ok: true; merged: boolean } | { ok: false; error: string }
 export type StaffResult = { ok: true } | { ok: false; error: string }
+export type ClockInResult = { ok: true; partnerSaved: boolean } | { ok: false; error: string }
 export type ClockOutResult = { ok: true; refillsSaved: boolean } | { ok: false; error: string }
+
+function isPartnerColumnMissing(error: { message?: string } | null): boolean {
+  const message = error?.message ?? ''
+  return /hygiene_partner/.test(message) && /column|schema cache/i.test(message)
+}
 
 function isRefillColumnMissing(error: { message?: string } | null): boolean {
   const message = error?.message ?? ''
@@ -112,14 +118,24 @@ export function useTimecard() {
     })
   }, [staffList, entries, breaks, postCheckStaff])
 
+  /**
+   * 出勤。身だしなみを確認してくれた相手の名前も同じ記録に残す。
+   * 相手の列がまだ無い(SQL未実行)ときは、相手だけ諦めて出勤は必ず通す。
+   */
   const clockIn = useCallback(
-    async (name: string) => {
+    async (name: string, partner?: string): Promise<ClockInResult> => {
       setBusy(name)
       try {
-        await supabase
-          .from('time_entries')
-          .insert({ staff_name: name, work_date: workDate, clock_in: new Date().toISOString() })
+        const base: Record<string, string> = { staff_name: name, work_date: workDate, clock_in: new Date().toISOString() }
+        let partnerSaved = partner !== undefined
+        let { error } = await supabase.from('time_entries').insert(partner === undefined ? base : { ...base, hygiene_partner: partner })
+        if (error && isPartnerColumnMissing(error)) {
+          partnerSaved = false
+          ;({ error } = await supabase.from('time_entries').insert(base))
+        }
         await reload()
+        if (error) return { ok: false, error: `出勤を保存できませんでした(${error.message})。もう一度押してください。` }
+        return { ok: true, partnerSaved }
       } finally {
         setBusy(null)
       }
@@ -272,6 +288,7 @@ export function useTimecard() {
     busy,
     workDate,
     rows,
+    staffList,
     clockIn,
     clockOut,
     startBreak,

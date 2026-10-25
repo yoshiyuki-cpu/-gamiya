@@ -9,6 +9,7 @@ import { todayLabelText } from '@/lib/checklist'
 import { breakMs, durationLabel, timeLabel, workedMs } from '@/lib/timecard'
 import ClockOutSheet from './_components/ClockOutSheet'
 import type { ClockOutInput } from './_components/ClockOutSheet'
+import HygieneSheet from './_components/HygieneSheet'
 import PostCheckSheet from './_components/PostCheckSheet'
 import StaffManager from './_components/StaffManager'
 import TimecardAdmin from './_components/TimecardAdmin'
@@ -56,6 +57,7 @@ function StaffCard({
           <span>出勤 {timeLabel(entry.clock_in)}</span>
           {entry.clock_out ? <span>退勤 {timeLabel(entry.clock_out)}</span> : null}
           {breaks.length > 0 ? <span>休憩 {durationLabel(breakMs(breaks, now))}</span> : null}
+          {entry.hygiene_partner ? <span>身だしなみ確認 {entry.hygiene_partner}</span> : null}
           {entry.clock_out && entry.drink_refills != null ? <span>おかわり {entry.drink_refills}杯</span> : null}
           <span className="tc-card-worked">実働 {durationLabel(workedMs(entry, breaks, now))}</span>
         </div>
@@ -97,6 +99,7 @@ export default function TimecardPage() {
     loading,
     busy,
     rows,
+    staffList,
     clockIn,
     clockOut,
     startBreak,
@@ -116,7 +119,7 @@ export default function TimecardPage() {
   // ふりかえりの表がまだ無い(SQL未実行)ときは、ふりかえりのほうは求めない。
   const reflections = useReflections()
   const [pendingOut, setPendingOut] = useState<StaffRow | null>(null)
-  const [clockOutNotice, setClockOutNotice] = useState<string | null>(null)
+  const [punchNotice, setPunchNotice] = useState<string | null>(null)
 
   // 店長・赤木の出勤の前に「ポストの確認をしました」を押させる。
   // 1日1回、どちらかが押せば残りの人は出せる(共有の確認)。
@@ -125,19 +128,26 @@ export default function TimecardPage() {
   const [pendingIn, setPendingIn] = useState<StaffRow | null>(null)
   const [postCheckError, setPostCheckError] = useState<string | null>(null)
 
+  // 出勤の前に、頭髪・爪・手洗いうがいの3項目を、2人1組でお互いに確認してもらう。
+  // 全員が毎回通る(ポスト確認が必要な人は、その後に出る)。
+  const [pendingHygiene, setPendingHygiene] = useState<StaffRow | null>(null)
+  const [hygieneError, setHygieneError] = useState<string | null>(null)
+
   const requestClockIn = useCallback(
     (row: StaffRow) => {
-      if (!row.checksPost || postCheck.done) {
-        void clockIn(row.name)
+      setPunchNotice(null)
+      if (row.checksPost && !postCheck.done) {
+        setPostCheckError(null)
+        setPendingIn(row)
         return
       }
-      setPostCheckError(null)
-      setPendingIn(row)
+      setHygieneError(null)
+      setPendingHygiene(row)
     },
-    [postCheck.done, clockIn],
+    [postCheck.done],
   )
 
-  const confirmPostCheckAndClockIn = useCallback(async () => {
+  const confirmPostCheck = useCallback(async () => {
     if (!pendingIn) return
     const result = await postCheck.confirm(pendingIn.name)
     if (!result.ok) {
@@ -146,11 +156,30 @@ export default function TimecardPage() {
     }
     const row = pendingIn
     setPendingIn(null)
-    await clockIn(row.name)
-  }, [pendingIn, postCheck, clockIn])
+    setHygieneError(null)
+    setPendingHygiene(row)
+  }, [pendingIn, postCheck])
+
+  const confirmHygieneAndClockIn = useCallback(
+    async (partner: string) => {
+      if (!pendingHygiene) return
+      const result = await clockIn(pendingHygiene.name, partner)
+      if (!result.ok) {
+        setHygieneError(result.error)
+        return
+      }
+      setPendingHygiene(null)
+      if (!result.partnerSaved) {
+        setPunchNotice(
+          '出勤は記録しましたが、確認した相手の名前は保存できませんでした。Supabaseで supabase-migration-hygiene-check.sql を実行してください。',
+        )
+      }
+    },
+    [pendingHygiene, clockIn],
+  )
 
   const requestClockOut = useCallback((row: StaffRow) => {
-    setClockOutNotice(null)
+    setPunchNotice(null)
     setPendingOut(row)
   }, [])
 
@@ -169,7 +198,7 @@ export default function TimecardPage() {
       if (!result.ok) return result
       setPendingOut(null)
       if (!result.refillsSaved) {
-        setClockOutNotice(
+        setPunchNotice(
           '退勤は記録しましたが、おかわりの杯数は保存できませんでした。Supabaseで supabase-migration-drink-refills.sql を実行してください。',
         )
       }
@@ -227,7 +256,7 @@ export default function TimecardPage() {
         </button>
       </div>
 
-      {clockOutNotice ? <div className="recorder-error">{clockOutNotice}</div> : null}
+      {punchNotice ? <div className="recorder-error">{punchNotice}</div> : null}
 
       {tab === 'punch' ? (
         <>
@@ -281,12 +310,23 @@ export default function TimecardPage() {
         />
       ) : null}
 
+      {pendingHygiene ? (
+        <HygieneSheet
+          staffName={pendingHygiene.name}
+          staffList={staffList}
+          saving={busy === pendingHygiene.name}
+          error={hygieneError}
+          onConfirm={(partner) => void confirmHygieneAndClockIn(partner)}
+          onClose={() => setPendingHygiene(null)}
+        />
+      ) : null}
+
       {pendingIn ? (
         <PostCheckSheet
           staffName={pendingIn.name}
           saving={postCheck.saving || busy === pendingIn.name}
           error={postCheckError}
-          onConfirm={confirmPostCheckAndClockIn}
+          onConfirm={confirmPostCheck}
           onClose={() => setPendingIn(null)}
         />
       ) : null}
