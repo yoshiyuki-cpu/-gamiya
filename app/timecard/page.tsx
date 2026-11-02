@@ -197,9 +197,11 @@ export default function TimecardPage() {
   const saveAndClockOut = useCallback(
     async (input: ClockOutInput) => {
       if (!pendingOut) return { ok: false as const, error: 'もう一度「退勤」を押してください。' }
+      // 断った組数が保存できなくても、退勤は止めない(数だけ画面に残して、あとで入れ直せるようにする)。
+      let turnawayFailure: string | null = null
       if (input.turnaways !== null) {
         const saved = await turnaways.save(input.turnaways, pendingOut.name)
-        if (!saved.ok) return saved
+        if (!saved.ok) turnawayFailure = `断った組数(${input.turnaways}組)は保存できませんでした。${saved.error}`
       }
       if (input.reflection) {
         const saved = await reflections.add(input.reflection.kind, input.reflection.body, pendingOut.name)
@@ -208,11 +210,12 @@ export default function TimecardPage() {
       const result = await clockOut(pendingOut, input.refills)
       if (!result.ok) return result
       setPendingOut(null)
+      const notices: string[] = []
+      if (turnawayFailure) notices.push(turnawayFailure)
       if (!result.refillsSaved) {
-        setPunchNotice(
-          '退勤は記録しましたが、おかわりの杯数は保存できませんでした。Supabaseで supabase-migration-drink-refills.sql を実行してください。',
-        )
+        notices.push('おかわりの杯数は保存できませんでした。Supabaseで supabase-migration-drink-refills.sql を実行してください。')
       }
+      if (notices.length > 0) setPunchNotice(`退勤は記録しましたが、${notices.join(' ')}`)
       return { ok: true as const }
     },
     [pendingOut, reflections, clockOut, turnaways],
