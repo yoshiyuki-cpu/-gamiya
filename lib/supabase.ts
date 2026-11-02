@@ -116,6 +116,16 @@ export type PostCheck = {
   created_at: string
 }
 
+// 1営業日につき1行。店長・赤木が退勤のときに入れる「今日断った組数」。
+export type TurnawayCount = {
+  id: number
+  count_date: string
+  groups: number
+  staff_name: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type ShiftRequirement = {
   weekday: number
   total_needed: number

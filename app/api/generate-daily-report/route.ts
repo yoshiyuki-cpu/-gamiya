@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   const reportDate = typeof body?.reportDate === 'string' && body.reportDate ? body.reportDate : todayKey()
   const { start: dayStart, end: dayEnd } = businessDayRange(reportDate)
 
-  const [{ data: items }, { data: records }, { data: orders }, { data: meetings }, { data: reflections }] = await Promise.all([
+  const [{ data: items }, { data: records }, { data: orders }, { data: meetings }, { data: reflections }, { data: turnaway }] = await Promise.all([
     // 手順メモ(is_note)はチェックする項目ではないので、日報の分母から外す。
     supabase.from('items').select('id, text, has_quantity').eq('is_note', false),
     supabase.from('daily_records').select('item_id, checked, quantity_value').eq('record_date', reportDate),
@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
       .eq('note_date', reportDate)
       .eq('hidden', false)
       .order('id'),
+    // 店長・赤木が退勤のときに入れた「今日断った組数」。表がまだ無ければ null のまま。
+    supabase.from('turnaway_counts').select('groups, staff_name').eq('count_date', reportDate).maybeSingle(),
   ])
 
   const total = (items ?? []).length
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
     `対象日: ${reportDate}\n\n` +
     `【開店準備チェックリスト】 ${doneCount}/${total} 完了\n\n` +
     `【壁紙メニュー注文】 合計${totalOrders}件(対応済${completedOrders}件)\n${orderLines.join('\n') || 'なし'}\n\n` +
+    `【今日お断りした組数】 ${turnaway ? `${turnaway.groups}組${turnaway.staff_name ? `(${turnaway.staff_name}が記入)` : ''}` : '記入なし'}\n\n` +
     `【スタッフが書いた良かった事・悪かった事】\n${reflectionLines.join('\n') || 'なし'}\n\n` +
     `【朝礼・会議・振り返りの記録】\n${meetingLines.join('\n') || 'なし'}`
 

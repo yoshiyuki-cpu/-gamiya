@@ -14,6 +14,8 @@ export type StaffRow = {
   state: StaffState
   // 出勤の前に「ポストの確認をしました」を押す必要がある人か。
   checksPost: boolean
+  // 退勤のときに「今日断った組数」を入れる人か。
+  logsTurnaways: boolean
 }
 
 // 担当者名は文字列のまま各テーブルに入っている。名前を直すときは
@@ -60,27 +62,26 @@ export function useTimecard() {
   // ポスト確認が必要な人の名前。checks_post の列がまだ無ければ空のまま(誰も止めない)。
   const [postCheckStaff, setPostCheckStaff] = useState<Set<string>>(new Set())
   const [staffColumnMissing, setStaffColumnMissing] = useState(false)
+  const [turnawayStaff, setTurnawayStaff] = useState<Set<string>>(new Set())
+  const [turnawayColumnMissing, setTurnawayColumnMissing] = useState(false)
   const [entries, setEntries] = useState<TimeEntry[]>([])
   const [breaks, setBreaks] = useState<TimeBreak[]>([])
   const [workDate] = useState(todayKey)
 
   const reload = useCallback(async () => {
     const [staffRes, { data: entryData }] = await Promise.all([
-      supabase.from('staff_names').select('name, checks_post').order('name'),
+      supabase.from('staff_names').select('*').order('name'),
       supabase.from('time_entries').select('*').eq('work_date', workDate).order('id'),
     ])
-    // checks_post の列がまだ無い(SQL未実行)ときは、名前だけで取り直す。
-    // 列が無いだけでスタッフ一覧ごと表示できなくなるのを避けるため。
-    let staffData = staffRes.data as { name: string; checks_post: boolean }[] | null
-    const columnMissing = !!staffRes.error && /checks_post/.test(staffRes.error.message ?? '') && /column|schema cache/i.test(staffRes.error.message ?? '')
-    if (staffRes.error) {
-      const fallback = await supabase.from('staff_names').select('name').order('name')
-      staffData = (fallback.data ?? []).map((s) => ({ name: s.name, checks_post: false }))
-    }
+    // 列を名指しせず全部読む。ポスト確認・断った組数の列がまだ無い(SQL未実行)ときも、
+    // スタッフ一覧ごと表示できなくなるのを避けるため。列が無ければ、その確認は求めない。
+    const staffData = (staffRes.data ?? []) as { name: string; checks_post?: boolean; logs_turnaways?: boolean }[]
     const list = (entryData ?? []) as TimeEntry[]
-    setStaffList((staffData ?? []).map((s) => s.name))
-    setPostCheckStaff(new Set((staffData ?? []).filter((s) => s.checks_post).map((s) => s.name)))
-    setStaffColumnMissing(columnMissing)
+    setStaffList(staffData.map((s) => s.name))
+    setPostCheckStaff(new Set(staffData.filter((s) => s.checks_post).map((s) => s.name)))
+    setTurnawayStaff(new Set(staffData.filter((s) => s.logs_turnaways).map((s) => s.name)))
+    setStaffColumnMissing(staffData.length > 0 && !('checks_post' in staffData[0]))
+    setTurnawayColumnMissing(staffData.length > 0 && !('logs_turnaways' in staffData[0]))
     setEntries(list)
     setBreaks(await fetchBreaksFor(list))
   }, [workDate])
@@ -114,9 +115,16 @@ export function useTimecard() {
       const mine = entries.filter((e) => e.staff_name === name)
       const entry = mine[mine.length - 1]
       const myBreaks = entry ? breaks.filter((b) => b.entry_id === entry.id) : []
-      return { name, entry, breaks: myBreaks, state: stateOf(entry, myBreaks), checksPost: postCheckStaff.has(name) }
+      return {
+        name,
+        entry,
+        breaks: myBreaks,
+        state: stateOf(entry, myBreaks),
+        checksPost: postCheckStaff.has(name),
+        logsTurnaways: turnawayStaff.has(name),
+      }
     })
-  }, [staffList, entries, breaks, postCheckStaff])
+  }, [staffList, entries, breaks, postCheckStaff, turnawayStaff])
 
   /**
    * 出勤。身だしなみを確認してくれた相手の名前も同じ記録に残す。
@@ -226,6 +234,23 @@ export function useTimecard() {
     [reload],
   )
 
+  /** 「退勤のときに断った組数を入れる」を付けたり外したりする。 */
+  const toggleTurnaways = useCallback(
+    async (name: string, next: boolean): Promise<StaffResult> => {
+      const { error } = await supabase.from('staff_names').update({ logs_turnaways: next }).eq('name', name)
+      if (error) {
+        const message = error.message ?? ''
+        if (/logs_turnaways/.test(message) && /column|schema cache/i.test(message)) {
+          return { ok: false, error: '断った組数の列がまだありません。Supabaseで supabase-migration-turnaways.sql を実行してください。' }
+        }
+        return { ok: false, error: `保存できませんでした${message ? `(${message})` : ''}。もう一度押してください。` }
+      }
+      await reload()
+      return { ok: true }
+    },
+    [reload],
+  )
+
   /** その名前で残っている記録の件数。削除してよいか判断するために使う。 */
   const countStaffRecords = useCallback(async (name: string): Promise<number> => {
     const counts = await Promise.all(
@@ -298,7 +323,9 @@ export function useTimecard() {
     deleteStaff,
     countStaffRecords,
     togglePostCheck,
+    toggleTurnaways,
     staffColumnMissing,
+    turnawayColumnMissing,
   }
 }
 

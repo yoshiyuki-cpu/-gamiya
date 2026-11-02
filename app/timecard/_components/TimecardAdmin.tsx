@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useTimecardMonth } from '@/hooks/useTimecard'
+import { useTurnawayMonth } from '@/hooks/useTurnaways'
 import type { MonthEntry } from '@/hooks/useTimecard'
 import {
   breakMs,
@@ -226,6 +227,7 @@ export default function TimecardAdmin() {
   const [monthKey, setMonthKey] = useState(currentMonthKey)
   const { loading, items, updateEntry, moveEntryDate, updateBreak, deleteBreak, deleteEntry } = useTimecardMonth(monthKey)
   const [openId, setOpenId] = useState<number | null>(null)
+  const turnaway = useTurnawayMonth(monthKey)
 
   const summary = useMemo(() => {
     const map = new Map<string, { days: Set<string>; ms: number; open: number; refills: number }>()
@@ -328,6 +330,31 @@ export default function TimecardAdmin() {
           )}
         </div>
       </div>
+
+      {turnaway.available && !turnaway.loading && turnaway.rows.length > 0 ? (
+        <div className="category">
+          <div className="category-head">
+            <div className="badge">断</div>
+            <div>
+              <div className="category-name">断った組数</div>
+              <div className="category-sub">
+                {monthLabel(monthKey)}の合計 {turnaway.total}組(店長・赤木が退勤のときに入れた数)
+              </div>
+            </div>
+          </div>
+          <div className="items">
+            {turnaway.rows.map((r) => (
+              <div key={r.id} className="visit-row">
+                <div className="visit-row-head">
+                  <span className="tc-date">{r.count_date.slice(5).replace('-', '/')}</span>
+                  <span className="visit-name">{r.staff_name ?? ''}</span>
+                  <span className="tc-worked">{r.groups}組</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {!loading && items.length > 0 ? (
         <div className="category">
