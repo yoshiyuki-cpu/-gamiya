@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { usePostCheck } from '@/hooks/usePostCheck'
 import { useReflections } from '@/hooks/useReflections'
 import { useTimecard } from '@/hooks/useTimecard'
+import { useTurnaways } from '@/hooks/useTurnaways'
 import type { StaffRow } from '@/hooks/useTimecard'
 import { todayLabelText } from '@/lib/checklist'
 import { breakMs, durationLabel, timeLabel, workedMs } from '@/lib/timecard'
@@ -109,7 +110,9 @@ export default function TimecardPage() {
     deleteStaff,
     countStaffRecords,
     togglePostCheck,
+    toggleTurnaways,
     staffColumnMissing,
+    turnawayColumnMissing,
   } = useTimecard()
   const [tab, setTab] = useState<'punch' | 'admin'>('punch')
   const [now, setNow] = useState(() => Date.now())
@@ -119,6 +122,8 @@ export default function TimecardPage() {
   // ふりかえりの表がまだ無い(SQL未実行)ときは、ふりかえりのほうは求めない。
   const reflections = useReflections()
   const [pendingOut, setPendingOut] = useState<StaffRow | null>(null)
+  // 店長・赤木(「断った組数あり」の人)は、退勤のときに今日断った組数も入れる。表がまだ無ければ聞かない。
+  const turnaways = useTurnaways()
   const [punchNotice, setPunchNotice] = useState<string | null>(null)
 
   // 店長・赤木の出勤の前に「ポストの確認をしました」を押させる。
@@ -187,9 +192,15 @@ export default function TimecardPage() {
     ? !reflections.loadError && !reflections.today.some((r) => (r.staff_name ?? '').trim() === pendingOut.name.trim())
     : false
 
+  const askTurnaways = !!pendingOut?.logsTurnaways && turnaways.available && !turnaways.loading
+
   const saveAndClockOut = useCallback(
     async (input: ClockOutInput) => {
       if (!pendingOut) return { ok: false as const, error: 'もう一度「退勤」を押してください。' }
+      if (input.turnaways !== null) {
+        const saved = await turnaways.save(input.turnaways, pendingOut.name)
+        if (!saved.ok) return saved
+      }
       if (input.reflection) {
         const saved = await reflections.add(input.reflection.kind, input.reflection.body, pendingOut.name)
         if (!saved.ok) return saved
@@ -204,7 +215,7 @@ export default function TimecardPage() {
       }
       return { ok: true as const }
     },
-    [pendingOut, reflections, clockOut],
+    [pendingOut, reflections, clockOut, turnaways],
   )
 
   // 勤務中の「実働」を伸ばしていく。分単位の表示なので30秒ごとで足りる。
@@ -281,12 +292,15 @@ export default function TimecardPage() {
           <StaffManager
             names={rows.map((r) => r.name)}
             checksPostNames={new Set(rows.filter((r) => r.checksPost).map((r) => r.name))}
+            turnawayNames={new Set(rows.filter((r) => r.logsTurnaways).map((r) => r.name))}
             staffColumnMissing={staffColumnMissing}
+            turnawayColumnMissing={turnawayColumnMissing}
             onAdd={addStaff}
             onRename={renameStaff}
             onDelete={deleteStaff}
             onCountRecords={countStaffRecords}
             onTogglePostCheck={togglePostCheck}
+            onToggleTurnaways={toggleTurnaways}
           />
 
           <div className="footer">
@@ -305,6 +319,8 @@ export default function TimecardPage() {
           staffName={pendingOut.name}
           saving={reflections.saving || busy === pendingOut.name}
           needsReflection={needsReflection}
+          askTurnaways={askTurnaways}
+          turnawaysSoFar={turnaways.today ? { groups: turnaways.today.groups, by: turnaways.today.staff_name } : null}
           onSave={saveAndClockOut}
           onClose={() => setPendingOut(null)}
         />

@@ -7,6 +7,8 @@ import { KIND_ICON, KIND_LABEL } from '@/lib/reflections'
 export type ClockOutInput = {
   /** ドリンクのおかわり杯数(0杯も入れる)。 */
   refills: number
+  /** 今日断った組数(店長・赤木だけ。0組も入れる)。聞かない人は null。 */
+  turnaways: number | null
   /** 今日まだ書いていない人だけ。 */
   reflection: { kind: ReflectionKind; body: string } | null
 }
@@ -18,21 +20,76 @@ export type ClockOutInput = {
  * 書き忘れが多いので、退勤のボタンをここに置く(入れないと退勤できない)。
  * 名前は打刻したスタッフの名前をそのまま使う(店のスマホを共有しているため)。
  */
+function CountStepper({
+  value,
+  onChange,
+  unit,
+  label,
+}: {
+  value: number | null
+  onChange: (next: number | null) => void
+  unit: string
+  label: string
+}) {
+  return (
+    <div className="co-refill">
+      <button
+        type="button"
+        className="co-step"
+        aria-label={`1${unit}減らす`}
+        disabled={value === null || value <= 0}
+        onClick={() => onChange(Math.max(0, (value ?? 0) - 1))}
+      >
+        −
+      </button>
+      <input
+        className="satisfaction-input co-refill-input"
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        placeholder="0"
+        aria-label={label}
+        value={value === null ? '' : String(value)}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/[^0-9]/g, '').slice(0, 3)
+          onChange(digits === '' ? null : Number(digits))
+        }}
+      />
+      <span className="co-unit">{unit}</span>
+      <button
+        type="button"
+        className="co-step"
+        aria-label={`1${unit}増やす`}
+        onClick={() => onChange(Math.min(999, (value ?? 0) + 1))}
+      >
+        ＋
+      </button>
+    </div>
+  )
+}
+
 export default function ClockOutSheet({
   staffName,
   saving,
   needsReflection,
+  askTurnaways,
+  turnawaysSoFar,
   onSave,
   onClose,
 }: {
   staffName: string
   saving: boolean
   needsReflection: boolean
+  /** 店長・赤木のときだけ、今日断った組数も聞く。 */
+  askTurnaways: boolean
+  /** 今日すでに入っている数(もう1人が先に入れていたら、その数と名前)。 */
+  turnawaysSoFar: { groups: number; by: string | null } | null
   /** 記録できたら退勤まで進める。 */
   onSave: (input: ClockOutInput) => Promise<{ ok: true } | { ok: false; error: string }>
   onClose: () => void
 }) {
   const [refills, setRefills] = useState<number | null>(null)
+  const [turnaways, setTurnaways] = useState<number | null>(turnawaysSoFar?.groups ?? null)
   const [kind, setKind] = useState<ReflectionKind | null>(null)
   const [body, setBody] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -46,7 +103,8 @@ export default function ClockOutSheet({
   }, [onClose])
 
   const reflectionReady = !needsReflection || (kind !== null && body.trim() !== '')
-  const canSave = refills !== null && reflectionReady && !saving
+  const turnawaysReady = !askTurnaways || turnaways !== null
+  const canSave = refills !== null && turnawaysReady && reflectionReady && !saving
 
   const submit = async () => {
     if (refills === null) return
@@ -54,6 +112,7 @@ export default function ClockOutSheet({
     setError(null)
     const result = await onSave({
       refills,
+      turnaways: askTurnaways ? turnaways : null,
       reflection: needsReflection && kind ? { kind, body } : null,
     })
     if (!result.ok) setError(result.error)
@@ -63,7 +122,9 @@ export default function ClockOutSheet({
     ? '保存中…'
     : refills === null
       ? 'おかわりの杯数を入れてください'
-      : needsReflection && !kind
+      : !turnawaysReady
+        ? '断った組数を入れてください'
+        : needsReflection && !kind
         ? '良かった事か悪かった事を選んでください'
         : needsReflection && kind
           ? `${KIND_LABEL[kind]}を記録して退勤する`
@@ -76,7 +137,7 @@ export default function ClockOutSheet({
           <div>
             <div className="menu-title">退勤の前に</div>
             <div className="co-sub">
-              {staffName}さん ・ {needsReflection ? 'おかわりの杯数と、今日の1つ' : 'おかわりの杯数'}
+              {staffName}さん ・ {[askTurnaways ? '断った組数' : null, 'おかわりの杯数', needsReflection ? '今日の1つ' : null].filter(Boolean).join('と')}
             </div>
           </div>
           <button type="button" className="menu-close" onClick={onClose} aria-label="閉じる">
@@ -85,40 +146,19 @@ export default function ClockOutSheet({
         </div>
 
         <div className="co-body">
+          {askTurnaways ? (
+            <>
+              <div className="co-label">今日、お断りした組は何組でしたか?</div>
+              <CountStepper value={turnaways} onChange={setTurnaways} unit="組" label="断った組数" />
+              <div className="co-note">
+                {turnawaysSoFar
+                  ? `${turnawaysSoFar.by ? `${turnawaysSoFar.by}さん` : 'ほかの人'}が入れた数(${turnawaysSoFar.groups}組)です。違えば直してください。`
+                  : 'お断りしていない日は「0」を入れてください。'}
+              </div>
+            </>
+          ) : null}
           <div className="co-label">今日、ドリンクのおかわりを何杯とれましたか?</div>
-          <div className="co-refill">
-            <button
-              type="button"
-              className="co-step"
-              aria-label="1杯減らす"
-              disabled={refills === null || refills <= 0}
-              onClick={() => setRefills((v) => Math.max(0, (v ?? 0) - 1))}
-            >
-              −
-            </button>
-            <input
-              className="satisfaction-input co-refill-input"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="0"
-              aria-label="おかわりの杯数"
-              value={refills === null ? '' : String(refills)}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/[^0-9]/g, '').slice(0, 3)
-                setRefills(digits === '' ? null : Number(digits))
-              }}
-            />
-            <span className="co-unit">杯</span>
-            <button
-              type="button"
-              className="co-step"
-              aria-label="1杯増やす"
-              onClick={() => setRefills((v) => Math.min(999, (v ?? 0) + 1))}
-            >
-              ＋
-            </button>
-          </div>
+          <CountStepper value={refills} onChange={setRefills} unit="杯" label="おかわりの杯数" />
           <div className="co-note">とれなかった日は「0」を入れてください。</div>
 
           {needsReflection ? (
