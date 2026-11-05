@@ -23,6 +23,10 @@
     {
       "path": "/api/notify-tomorrow-reservations",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/backup-data",
+      "schedule": "0 19 * * *"
     }
   ]
 }
