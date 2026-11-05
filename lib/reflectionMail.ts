@@ -1,9 +1,9 @@
 import { dateLabel } from './reflections'
+import { sendMail } from './mail'
+import type { MailResult } from './mail'
 
 export type MailReflection = { kind: 'good' | 'bad'; body: string; staff_name: string | null }
 
-export type MailStatus = 'sent' | 'not_configured' | 'failed'
-export type MailResult = { status: MailStatus; to?: string[] }
 
 const INDENT = '　'
 
@@ -39,33 +39,7 @@ export function buildReflectionMail(
   return { subject: `【がみや】${label} 良かった事・悪かった事(全員分)`, text }
 }
 
-/**
- * Resend(メール送信サービス)で送る。環境変数が足りなければ送らずに終わる。
- * メールが送れなくても日報づくりは止めないので、例外は投げない。
- */
-export async function sendReflectionMail(subject: string, text: string): Promise<MailResult> {
-  const apiKey = process.env.RESEND_API_KEY
-  const to = (process.env.REPORT_MAIL_TO ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-  if (!apiKey || to.length === 0) return { status: 'not_configured' }
-
-  const from = process.env.REPORT_MAIL_FROM || 'がみやアプリ <onboarding@resend.dev>'
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to, subject, text }),
-      signal: AbortSignal.timeout(10000),
-    })
-    if (!res.ok) {
-      console.error('reflection mail failed', res.status, await res.text().catch(() => ''))
-      return { status: 'failed' }
-    }
-    return { status: 'sent', to }
-  } catch (err) {
-    console.error('reflection mail error', err)
-    return { status: 'failed' }
-  }
+/** 日報づくりのたびに、その日の全員分を送る。 */
+export function sendReflectionMail(subject: string, text: string): Promise<MailResult> {
+  return sendMail(subject, text)
 }
